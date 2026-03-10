@@ -81,9 +81,10 @@ export const createChatSession = async (
 
     sessions.push(newSession);
     saveSessionsToStorage(sessions);
+    console.log("[Clairvyn:chat] createChatSession", { id: newSession.id, forcedId: !!forcedId });
     return newSession.id;
   } catch (error) {
-    console.error('Error creating chat session:', error);
+    console.error("[Clairvyn:chat] createChatSession error", error);
     throw error;
   }
 };
@@ -143,17 +144,13 @@ export const addMessageToChat = async (
 
 // Get messages for a chat session
 export const getChatMessages = async (chatId: string, token?: string): Promise<Message[]> => {
-  console.debug('getChatMessages called', { chatId, token });
-  // if an auth token is provided, attempt to fetch from the backend first
+  console.log("[Clairvyn:chat] getChatMessages", { chatId, hasToken: !!token });
   if (token) {
     try {
-      console.debug('fetching messages from backend', chatId);
       const data = await apiFetch<any>(
         `/api/chats/${encodeURIComponent(chatId)}/messages`,
         { method: "GET", token }
       );
-      console.debug('raw history response', data);
-      // Backend returns array of messages directly
       const array: any[] = Array.isArray(data) ? data : [];
       const hist: Message[] = array.map((m) => ({
         role: m.sender_type === "user" ? "user" : "assistant",
@@ -165,21 +162,21 @@ export const getChatMessages = async (chatId: string, token?: string): Promise<M
         image_url: m.image_url ?? undefined,
         extra_data: m.extra_data ?? undefined,
       }));
-      console.debug('received history from backend', hist);
+      console.log("[Clairvyn:chat] getChatMessages → backend", { chatId, count: hist.length });
       return hist;
     } catch (err) {
-      console.warn("Unable to load messages from backend, falling back to local storage", err);
-      // continue to local-storage fallback below
+      console.warn("[Clairvyn:chat] getChatMessages backend failed, using local", { chatId, err });
     }
   }
 
   try {
     const sessions = getSessionsFromStorage();
     const session = sessions.find((s) => s.id === chatId);
-    console.debug('returning messages from local cache', session?.messages || []);
-    return session ? session.messages : [];
+    const messages = session ? session.messages : [];
+    console.log("[Clairvyn:chat] getChatMessages → local", { chatId, count: messages.length });
+    return messages;
   } catch (error) {
-    console.error('Error getting chat messages:', error);
+    console.error("[Clairvyn:chat] getChatMessages error", { chatId, error });
     return [];
   }
 };
@@ -189,30 +186,23 @@ export const getUserChatSessions = async (
   userId: string,
   token?: string
 ): Promise<ChatSession[]> => {
-  console.debug('getUserChatSessions', { userId, token });
-  // if we have an auth token try to read sessions from the backend
+  console.log("[Clairvyn:chat] getUserChatSessions", { userId, hasToken: !!token });
   if (token) {
     try {
-      // backend is expected to respond with an array of sessions that include at least
-      // { id, user_id?, created_at, updated_at, messages? }
       const backendSessions: any[] = await apiFetch(`/api/chats`, {
         method: "GET",
         token,
       });
-      console.log('raw sessions response from backend', backendSessions);
-      // normalize the shape and sort by updatedAt
       const converted: ChatSession[] = backendSessions.map((s) => ({
         id: String(s.id),
         userId,
         title: s.title ?? null,
-        messages: [], // Backend list does not include messages; load via getChatMessages when opening a chat
+        messages: [],
         createdAt: new Date(s.created_at || s.createdAt || Date.now()),
         updatedAt: new Date(s.updated_at || s.updatedAt || Date.now()),
       }));
 
-      // store the backend sessions locally so we have an offline cache
       try {
-        console.debug('caching backend sessions locally', converted);
         const all = getSessionsFromStorage().filter((s) => s.userId !== userId);
         const merged = all.concat(converted);
         saveSessionsToStorage(merged);
@@ -220,10 +210,11 @@ export const getUserChatSessions = async (
         /* ignore cache failure */
       }
 
-      return converted.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      const sorted = converted.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      console.log("[Clairvyn:chat] getUserChatSessions → backend", { count: sorted.length, titles: sorted.map((s) => s.title) });
+      return sorted;
     } catch (err) {
-      console.warn("Unable to load sessions from backend, falling back to local storage", err);
-      // fall through to the local-storage implementation below
+      console.warn("[Clairvyn:chat] getUserChatSessions backend failed, using local", { userId, err });
     }
   }
 
@@ -232,10 +223,10 @@ export const getUserChatSessions = async (
     const filtered = sessions
       .filter((s) => s.userId === userId)
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-    console.debug('returning local user sessions', filtered);
+    console.log("[Clairvyn:chat] getUserChatSessions → local", { count: filtered.length });
     return filtered;
   } catch (error) {
-    console.error('Error getting user chat sessions:', error);
+    console.error("[Clairvyn:chat] getUserChatSessions error", { userId, error });
     return [];
   }
 };
@@ -271,7 +262,6 @@ export const setChatMessages = async (
     const sessions = getSessionsFromStorage();
     const sessionIndex = sessions.findIndex((s) => s.id === chatId);
     if (sessionIndex === -1) {
-      // if the session doesn't exist locally, create it
       sessions.push({
         id: chatId,
         userId: '',
@@ -279,13 +269,15 @@ export const setChatMessages = async (
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      console.log("[Clairvyn:chat] setChatMessages (new session)", { chatId, count: messages.length });
     } else {
       sessions[sessionIndex].messages = messages;
       sessions[sessionIndex].updatedAt = new Date();
+      console.log("[Clairvyn:chat] setChatMessages", { chatId, count: messages.length });
     }
     saveSessionsToStorage(sessions);
   } catch (error) {
-    console.error('Error setting chat messages:', error);
+    console.error("[Clairvyn:chat] setChatMessages error", { chatId, error });
   }
 };
 

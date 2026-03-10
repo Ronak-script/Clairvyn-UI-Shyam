@@ -169,29 +169,31 @@ export default function ChatbotPage() {
 
   // Load messages on mount - only create new local chat if user has no sessions (prevents duplicate from Strict Mode)
   useEffect(() => {
-    console.debug('init effect', { user, currentChatId, isGuest });
+    console.log("[Clairvyn] init effect", { hasUser: !!user, currentChatId, isGuest, authLoading });
     if (user && !currentChatId) {
       const initChat = async () => {
         const token = await getIdToken()
-        console.debug('initialising chat sessions', { token });
+        console.log("[Clairvyn] initChat: loading sessions", { hasToken: !!token });
         let sessions: ChatSession[] = []
 
         if (token) {
           try {
             sessions = await getUserChatSessions(user.uid, token)
           } catch (err) {
-            console.warn("failed to load sessions from backend, falling back to local", err)
+            console.warn("[Clairvyn] initChat: backend failed, falling back to local", err)
             sessions = await getUserChatSessions(user.uid)
           }
         } else {
           sessions = await getUserChatSessions(user.uid)
         }
 
-        console.debug('sessions loaded', sessions);
+        console.log("[Clairvyn] initChat: sessions loaded", { count: sessions.length });
         if (sessions.length === 0) {
+          console.log("[Clairvyn] initChat: no sessions, creating new chat");
           await createNewChat()
         } else {
           const latest = sessions[0]
+          console.log("[Clairvyn] initChat: restoring latest", { chatId: latest.id, title: latest.title, messageCount: latest.messages.length });
           setCurrentChatId(latest.id)
           setMessages(latest.messages.map((m) => ({
             ...m,
@@ -217,10 +219,10 @@ export default function ChatbotPage() {
   }, [messages, isGuest])
 
   const createNewChat = async () => {
+    console.log("[Clairvyn] createNewChat called", { hasUser: !!user, isGuest });
     if (user) {
       setIsLoading(true)
       try {
-        // try to create on backend first so we can use the returned id
         let localId: string | null = null
         const token = await getIdToken()
         if (token) {
@@ -229,25 +231,23 @@ export default function ChatbotPage() {
               "/api/chats",
               { method: "POST", body: { title: null, metadata: {} }, token }
             )
-            localId = data.id
-            setBackendChatId(data.id)
+            localId = typeof data.id === "number" ? String(data.id) : data.id
+            setBackendChatId(localId)
+            console.log("[Clairvyn] createNewChat: backend chat created", { id: localId, title: data.title });
           } catch (err) {
-            console.warn("failed to create backend chat for new session", err)
+            console.warn("[Clairvyn] createNewChat: backend create failed", err)
           }
         }
 
-        // create a local session using either the backend id or a uuid
         const chatId = await createChatSession(user.uid, localId || undefined)
         setCurrentChatId(chatId)
-        if (!localId) {
-          // no backend id yet, clear any stale value
-          setBackendChatId(null)
-        }
+        if (!localId) setBackendChatId(null)
 
         setMessages([])
-        setHasStarted(false) // Reset to initial state
+        setHasStarted(false)
+        console.log("[Clairvyn] createNewChat: done", { chatId, backendId: localId });
       } catch (error) {
-        console.error("Error creating chat session:", error)
+        console.error("[Clairvyn] createNewChat error", error)
       } finally {
         setIsLoading(false)
       }
@@ -260,13 +260,18 @@ export default function ChatbotPage() {
   }
 
   const ensureBackendChat = async (): Promise<string | null> => {
-    if (backendChatId) return backendChatId
+    if (backendChatId) {
+      console.log("[Clairvyn] ensureBackendChat: already have id", { backendChatId });
+      return backendChatId
+    }
     const token = await getIdToken()
     if (!token) {
+      console.error("[Clairvyn] ensureBackendChat: no token")
       throw new Error("Missing auth token")
     }
 
     try {
+      console.log("[Clairvyn] ensureBackendChat: creating backend chat", { currentChatId });
       const data = await apiFetch<{ id: string | number; title: string | null; metadata: any }>(
         "/api/chats",
         {
@@ -281,10 +286,10 @@ export default function ChatbotPage() {
         setCurrentChatId(backendId)
       }
       setBackendChatId(backendId)
+      console.log("[Clairvyn] ensureBackendChat: done", { backendId, title: data.title });
       return backendId
     } catch (err) {
-      console.error("Failed to create backend chat session:", err)
-      // leave backendChatId null so we can retry later
+      console.error("[Clairvyn] ensureBackendChat failed", err)
       return null
     }
   }
@@ -341,6 +346,7 @@ export default function ChatbotPage() {
     }
 
     setIsLoading(true)
+    console.log("[Clairvyn] handleSubmit: start", { userText: userText.slice(0, 50), currentChatId, hasUser: !!user });
 
     try {
       if (user && currentChatId) {
@@ -349,6 +355,7 @@ export default function ChatbotPage() {
 
       if (!user) {
         // For guests we currently don't hit the backend AI; just simulate.
+        console.log("[Clairvyn] handleSubmit: guest mode, simulating response");
         const aiResponse = await simulateAIResponse(userText)
         const assistantMessage: Omit<ChatMessage, 'timestamp'> = {
           role: 'assistant',
@@ -365,8 +372,10 @@ export default function ChatbotPage() {
 
       const chatId = await ensureBackendChat()
       if (!chatId) {
+        console.error("[Clairvyn] handleSubmit: no backend chat id");
         throw new Error('Could not create or retrieve backend chat')
       }
+      console.log("[Clairvyn] handleSubmit: sending turn", { chatId, contentLength: userText.length });
 
       type TurnResponse = {
         user_message: { id: string; content: string; image_url: string | null; created_at: string }
@@ -383,8 +392,6 @@ export default function ChatbotPage() {
         }
       }
 
-      // diagnostic log before sending the request
-      console.debug("POST turn", { chatId, body: { content: userText, image_url: null } });
       let data: any;
       try {
         data = await apiFetch<any>(
@@ -396,8 +403,8 @@ export default function ChatbotPage() {
           }
         )
       } catch (err: any) {
-        console.error("turn request failed", { chatId, error: err });
-        throw err; // rethrow so outer catch handles messaging
+        console.error("[Clairvyn] handleSubmit: turn request failed", { chatId, error: err?.message ?? err });
+        throw err;
       }
 
       // if backend returned chat_id we can cache it
@@ -428,6 +435,7 @@ export default function ChatbotPage() {
       }
 
       setMessages(updatedHistory)
+      console.log("[Clairvyn] handleSubmit: success", { historyLength: updatedHistory.length, assistantContent: (data as any)?.assistant_message?.content });
 
       // Optimistically set chat title in sidebar from first user message
       if (currentChatId) {
@@ -439,7 +447,7 @@ export default function ChatbotPage() {
         )
       }
     } catch (error: any) {
-      console.error("Error sending message:", error)
+      console.error("[Clairvyn] handleSubmit: error", { message: error?.message, code: (error as any)?.code })
       let content = "I'm sorry, I encountered an error. Please try again."
 
       // peek at error to give a more helpful hint
@@ -463,9 +471,16 @@ export default function ChatbotPage() {
 
   const downloadDxf = async (documentId: string) => {
     const chatId = backendChatId ?? currentChatId
-    if (!chatId) return
+    console.log("[Clairvyn] downloadDxf", { documentId, chatId });
+    if (!chatId) {
+      console.warn("[Clairvyn] downloadDxf: no chatId");
+      return
+    }
     const token = await getIdToken()
-    if (!token) return
+    if (!token) {
+      console.warn("[Clairvyn] downloadDxf: no token");
+      return
+    }
     try {
       const url = getBackendUrl(`/api/chats/${encodeURIComponent(chatId)}/files/${documentId}.dxf`)
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -479,25 +494,28 @@ export default function ChatbotPage() {
       a.click()
       a.remove()
       URL.revokeObjectURL(href)
+      console.log("[Clairvyn] downloadDxf: success", { documentId });
     } catch (e) {
-      console.error("DXF download failed", e)
+      console.error("[Clairvyn] downloadDxf failed", { documentId, error: e });
     }
   }
 
   const handleLogout = async () => {
+    console.log("[Clairvyn] handleLogout");
     try {
       const idToken = await getIdToken()
-      await fetch(getBackendUrl("/api/logout"), {
+      const res = await fetch(getBackendUrl("/api/logout"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
       })
+      console.log("[Clairvyn] handleLogout: backend response", { status: res.status });
       await logout()
       router.push("/")
     } catch (error) {
-      console.error("Error logging out:", error)
+      console.error("[Clairvyn] handleLogout error", error)
     }
   }
 
@@ -516,7 +534,7 @@ export default function ChatbotPage() {
   }
 
   const handleHistory = async () => {
-    console.debug('handleHistory called');
+    console.log("[Clairvyn] handleHistory");
     setSidebarView("history")
     if (isGuest || !user) {
       setChatSessions([])
@@ -525,19 +543,18 @@ export default function ChatbotPage() {
     setHistoryLoading(true)
     try {
       const token = await getIdToken()
-      console.debug('fetching history with token', token);
       let sessions: ChatSession[] = []
       if (token) {
         try {
           sessions = await getUserChatSessions(user.uid, token)
         } catch (err) {
-          console.warn("history load failed against backend, using local storage", err)
+          console.warn("[Clairvyn] handleHistory: backend failed, using local", err)
           sessions = await getUserChatSessions(user.uid)
         }
       } else {
         sessions = await getUserChatSessions(user.uid)
       }
-      console.debug('history sessions', sessions);
+      console.log("[Clairvyn] handleHistory: loaded", { count: sessions.length });
       setChatSessions(sessions)
     } catch (error) {
       console.error("Error loading chat history:", error)
@@ -548,6 +565,7 @@ export default function ChatbotPage() {
   }
 
   const loadChatSession = async (chatId: string) => {
+    console.log("[Clairvyn] loadChatSession", { chatId });
     try {
       const token = await getIdToken()
       let sessionMessages = [] as ChatMessage[]
@@ -557,14 +575,14 @@ export default function ChatbotPage() {
           sessionMessages = await getChatMessages(chatId, token)
           loadedFromBackend = true
         } catch (err) {
-          console.warn("failed to load messages from backend, falling back to local", err)
+          console.warn("[Clairvyn] loadChatSession: backend failed, using local", err)
           sessionMessages = await getChatMessages(chatId)
         }
       } else {
         sessionMessages = await getChatMessages(chatId)
       }
+      console.log("[Clairvyn] loadChatSession: messages loaded", { chatId, count: sessionMessages.length, fromBackend: loadedFromBackend });
 
-      // persist what we retrieved in local storage so the offline cache stays in sync
       if (loadedFromBackend) {
         await setChatMessages(chatId, sessionMessages.map((m) => ({
           ...m,
