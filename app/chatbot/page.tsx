@@ -43,18 +43,16 @@ import {
   createChatSession,
   renameChatSession,
   addMessageToChat,
-  simulateAIResponse,
   setChatMessages,
   Message as ChatMessage,
   ChatSession,
-  getGuestChats,
-  saveGuestChats,
-  clearGuestChats,
   getUserChatSessions,
   getChatMessages,
   deleteChatSession,
 } from "@/lib/chat-service"
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
+import { canGuestGenerate, incrementGuestGenerationsUsed, getGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
+import { PaymentPaywallModal } from "@/components/PaymentPaywallModal"
 
 /** Fetches image with Bearer token and displays via blob URL (for auth-protected backend images). */
 function AuthImage({
@@ -117,11 +115,12 @@ function AuthImage({
 }
 
 export default function ChatbotPage() {
-  const { user, logout, loading: authLoading, isGuest, getIdToken } = useAuth()
+  const { user, logout, loading: authLoading, getIdToken } = useAuth()
   const { isDarkMode, toggleDarkMode } = useTheme()
   const router = useRouter()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [hasPaid, setHasPaid] = useState(false)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -129,6 +128,27 @@ export default function ChatbotPage() {
       router.push("/signin")
     }
   }, [user, authLoading, router])
+
+  // Fetch has_paid from backend when user is present
+  useEffect(() => {
+    if (!user) {
+      setHasPaid(false)
+      return
+    }
+    let cancelled = false
+    getIdToken().then((token) => {
+      if (!token || cancelled) return
+      fetch(getBackendUrl("/api/me"), {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+        })
+        .catch(() => {})
+    })
+    return () => { cancelled = true }
+  }, [user, getIdToken])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [typing, setTyping] = useState(false)
@@ -163,6 +183,7 @@ export default function ChatbotPage() {
   const [backendChatId, setBackendChatId] = useState<string | null>(null)
   const [showGuestBanner, setShowGuestBanner] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   // Chat history state (integrated into sidebar)
   const [sidebarView, setSidebarView] = useState<"menu" | "history">("menu")
@@ -171,7 +192,7 @@ export default function ChatbotPage() {
 
   // Load messages on mount - only create new local chat if user has no sessions (prevents duplicate from Strict Mode)
   useEffect(() => {
-    console.log("[Clairvyn] init effect", { hasUser: !!user, currentChatId, isGuest, authLoading });
+    console.log("[Clairvyn] init effect", { hasUser: !!user, currentChatId, authLoading });
     if (user && !currentChatId) {
       const initChat = async () => {
         const token = await getIdToken()
@@ -205,23 +226,40 @@ export default function ChatbotPage() {
         }
       }
       initChat()
-    } else if (isGuest) {
-      // Load guest chats from localStorage
-      const guestMessages = getGuestChats()
-      console.debug('loaded guest messages', guestMessages);
-      setMessages(guestMessages)
     }
-  }, [user, isGuest])
+  }, [user, getIdToken])
 
-  // Save guest messages to localStorage when they change
+  // After return from PhonePe: confirm payment, then refetch has_paid
   useEffect(() => {
-    if (isGuest && messages.length > 0) {
-      saveGuestChats(messages)
-    }
-  }, [messages, isGuest])
+    if (typeof window === "undefined" || !user) return
+    const params = new URLSearchParams(window.location.search)
+    const paymentReturn = params.get("payment_return")
+    const orderId = params.get("order_id")
+    if (paymentReturn !== "1" || !orderId) return
+    let cancelled = false
+    getIdToken().then((t) => {
+      if (cancelled || !t) return
+      fetch(getBackendUrl("/api/payments/phonepe/confirm"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ merchant_order_id: orderId }),
+      })
+        .then(() => {
+          if (cancelled) return
+          return fetch(getBackendUrl("/api/me"), { headers: { Authorization: `Bearer ${t}` } })
+        })
+        .then((res) => (res?.ok ? res.json() : null))
+        .then((data) => {
+          if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+        })
+        .catch(() => {})
+    })
+    window.history.replaceState({}, "", "/chatbot")
+    return () => { cancelled = true }
+  }, [user, getIdToken])
 
   const createNewChat = async () => {
-    console.log("[Clairvyn] createNewChat called", { hasUser: !!user, isGuest });
+    console.log("[Clairvyn] createNewChat called", { hasUser: !!user });
     if (user) {
       setIsLoading(true)
       try {
@@ -253,11 +291,6 @@ export default function ChatbotPage() {
       } finally {
         setIsLoading(false)
       }
-    } else if (isGuest) {
-      // Clear guest messages
-      clearGuestChats()
-      setMessages([])
-      setHasStarted(false) // Reset to initial state
     }
   }
 
@@ -347,24 +380,18 @@ export default function ChatbotPage() {
       return // DO NOT call backend — scripted demo handled it
     }
 
+    // Unpaid users: 6 free generations, then paywall
+    if (!hasPaid && !canGuestGenerate()) {
+      setShowPaywall(true)
+      return
+    }
+
     setIsLoading(true)
     console.log("[Clairvyn] handleSubmit: start", { userText: userText.slice(0, 50), currentChatId, hasUser: !!user });
 
     try {
       if (user && currentChatId) {
         await addMessageToChat(currentChatId, userMessage)
-      }
-
-      if (!user) {
-        // For guests we currently don't hit the backend AI; just simulate.
-        console.log("[Clairvyn] handleSubmit: guest mode, simulating response");
-        const aiResponse = await simulateAIResponse(userText)
-        const assistantMessage: Omit<ChatMessage, 'timestamp'> = {
-          role: 'assistant',
-          content: aiResponse
-        }
-        setMessages(prev => [...prev, { ...assistantMessage, timestamp: new Date().toISOString() }])
-        return
       }
 
       const token = await getIdToken()
@@ -438,6 +465,8 @@ export default function ChatbotPage() {
 
       setMessages(updatedHistory)
       console.log("[Clairvyn] handleSubmit: success", { historyLength: updatedHistory.length, assistantContent: (data as any)?.assistant_message?.content });
+
+      if (!hasPaid) incrementGuestGenerationsUsed()
 
       // Optimistically set chat title in sidebar from first user message
       if (currentChatId) {
@@ -571,7 +600,7 @@ export default function ChatbotPage() {
   const handleHistory = async () => {
     console.log("[Clairvyn] handleHistory");
     setSidebarView("history")
-    if (isGuest || !user) {
+    if (!user) {
       setChatSessions([])
       return
     }
@@ -814,7 +843,7 @@ export default function ChatbotPage() {
       </Dialog>
 
       {/* Guest Banner - Temporarily disabled for demo */}
-      {false && isGuest && showGuestBanner && (
+      {false && showGuestBanner && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1034,7 +1063,7 @@ export default function ChatbotPage() {
                   /* History view */
                   <div className="flex flex-col flex-1 min-h-0">
                     <div className="flex-1 overflow-y-auto -mr-2 pr-2 mt-2">
-                      {isGuest || !user ? (
+                      {!user ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Sign in to save and view your chat history across devices.
                         </p>
@@ -1234,6 +1263,11 @@ export default function ChatbotPage() {
 
         {/* Chat Input - Single Container with Smooth Animation */}
         <div className={`chat-input-container ${hasStarted ? "dock" : "start"}`}>
+          {!hasPaid && user && (
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mb-1">
+              {getGuestGenerationsUsed()} of {FREE_GUEST_GENERATIONS} free generations used
+            </p>
+          )}
           <div className="chat-input">
             <input
               type="text"
@@ -1273,6 +1307,18 @@ export default function ChatbotPage() {
           </div>
         </div>
       </main>
+
+      <PaymentPaywallModal
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        isDarkMode={isDarkMode}
+        hasUser={!!user}
+        getToken={getIdToken}
+        onSignInClick={() => {
+          setShowPaywall(false)
+          router.push("/signin")
+        }}
+      />
     </div>
   )
 }
