@@ -4,15 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 import { handleScriptedInput } from "@/lib/demoScript"
 import TypingIndicator from "@/components/TypingIndicator"
 import {
@@ -29,10 +20,11 @@ import {
   Save,
   Plus,
   Loader2,
-  ThumbsUp,
-  ThumbsDown,
   ChevronLeft,
+  ChevronDown,
   Trash2,
+  Download,
+  FileDown,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import Link from "next/link"
@@ -53,6 +45,7 @@ import {
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
 import { canGuestGenerate, incrementGuestGenerationsUsed, getGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
 import { PaymentPaywallModal } from "@/components/PaymentPaywallModal"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 /** Fetches image with Bearer token and displays via blob URL (for auth-protected backend images). */
 function AuthImage({
@@ -119,8 +112,34 @@ export default function ChatbotPage() {
   const { isDarkMode, toggleDarkMode } = useTheme()
   const router = useRouter()
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // used for mobile drawer
   const [hasPaid, setHasPaid] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+
+  const normalizeImageUrl = (value: unknown): string | null => {
+    if (typeof value !== "string" || value.trim().length === 0) return null
+    const normalized = value.trim()
+    return normalized.startsWith("/") ? getBackendUrl(normalized) : normalized
+  }
+
+  const getProfileImageFromMe = (data: any): string | null => {
+    if (!data || typeof data !== "object") return null
+    const explicitPhotoUrl = normalizeImageUrl(data.photo_url)
+    if (explicitPhotoUrl) return explicitPhotoUrl
+
+    const possible = [
+      data.photoURL,
+      data.profile_image_url,
+      data.profileImageUrl,
+      data.avatar_url,
+      data.avatarUrl,
+      data.image_url,
+      data.imageUrl,
+      data.picture,
+    ]
+    const url = possible.find((value) => normalizeImageUrl(value))
+    return normalizeImageUrl(url)
+  }
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -133,6 +152,7 @@ export default function ChatbotPage() {
   useEffect(() => {
     if (!user) {
       setHasPaid(false)
+      setProfileImageUrl(null)
       return
     }
     let cancelled = false
@@ -143,7 +163,13 @@ export default function ChatbotPage() {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
+          if (!cancelled) console.log("[Clairvyn] /api/me user details:", data)
           if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+          if (!cancelled) {
+            const backendPhoto = getProfileImageFromMe(data)
+            console.log("[Clairvyn] resolved sidebar profile image:", backendPhoto ?? user.photoURL ?? null)
+            setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
+          }
         })
         .catch(() => {})
     })
@@ -156,25 +182,6 @@ export default function ChatbotPage() {
   const [placeholderText, setPlaceholderText] = useState("Design a Floor-plan for a 3BHK House")
   const [isFirstSubmit, setIsFirstSubmit] = useState<boolean>(true)
 
-  // Feedback State
-  const [messageCount, setMessageCount] = useState(0)
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
-  const [feedbackSuccess, setFeedbackSuccess] = useState(false)
-  const [feedbackAnswers, setFeedbackAnswers] = useState<{
-    q1: 'up' | 'down' | null,
-    q2: 'up' | 'down' | null,
-    q3: 'up' | 'down' | null
-  }>({ q1: null, q2: null, q3: null })
-  const [feedbackText, setFeedbackText] = useState("")
-
-  // Trigger feedback after 2 user messages
-  useEffect(() => {
-    if (messageCount === 2 && !feedbackSubmitted) {
-      setShowFeedback(true)
-    }
-  }, [messageCount, feedbackSubmitted])
-
   // Helper function for demo script
   const addMessage = (msg: any) => setMessages(prev => [...prev, msg])
   const [isPencilHovered, setIsPencilHovered] = useState(false)
@@ -186,7 +193,6 @@ export default function ChatbotPage() {
   const [showPaywall, setShowPaywall] = useState(false)
 
   // Chat history state (integrated into sidebar)
-  const [sidebarView, setSidebarView] = useState<"menu" | "history">("menu")
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
@@ -211,6 +217,7 @@ export default function ChatbotPage() {
         }
 
         console.log("[Clairvyn] initChat: sessions loaded", { count: sessions.length });
+        setChatSessions(sessions)
         if (sessions.length === 0) {
           console.log("[Clairvyn] initChat: no sessions, creating new chat");
           await createNewChat()
@@ -250,13 +257,29 @@ export default function ChatbotPage() {
         })
         .then((res) => (res?.ok ? res.json() : null))
         .then((data) => {
+          if (!cancelled) console.log("[Clairvyn] /api/me user details (after payment):", data)
           if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+          if (!cancelled) {
+            const backendPhoto = getProfileImageFromMe(data)
+            console.log("[Clairvyn] resolved sidebar profile image (after payment):", backendPhoto ?? user.photoURL ?? null)
+            setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
+          }
         })
         .catch(() => {})
     })
     window.history.replaceState({}, "", "/chatbot")
     return () => { cancelled = true }
   }, [user, getIdToken])
+
+  useEffect(() => {
+    if (!user) {
+      setProfileImageUrl(null)
+      return
+    }
+    if (!profileImageUrl && user.photoURL) {
+      setProfileImageUrl(user.photoURL)
+    }
+  }, [user, profileImageUrl])
 
   const createNewChat = async () => {
     console.log("[Clairvyn] createNewChat called", { hasUser: !!user });
@@ -340,9 +363,6 @@ export default function ChatbotPage() {
 
     const userText = inputValue.trim()
     const normalized = userText.toLowerCase().trim()
-
-    // Increment message count for feedback trigger
-    setMessageCount(prev => prev + 1)
 
     const userMessage: Omit<ChatMessage, 'timestamp'> = {
       role: 'user',
@@ -599,7 +619,6 @@ export default function ChatbotPage() {
 
   const handleHistory = async () => {
     console.log("[Clairvyn] handleHistory");
-    setSidebarView("history")
     if (!user) {
       setChatSessions([])
       return
@@ -678,7 +697,6 @@ export default function ChatbotPage() {
         timestamp: typeof m.timestamp === "string" ? m.timestamp : (m.timestamp as Date).toISOString()
       })))
       setHasStarted(sessionMessages.length > 0)
-      setSidebarView("menu")
       setIsSidebarOpen(false)
     } catch (error) {
       console.error("Error loading chat session:", error)
@@ -686,10 +704,10 @@ export default function ChatbotPage() {
   }
 
   const sidebarItems = [
-    { icon: Plus, label: "New Design", action: createNewChat, keepOpen: false },
-    { icon: Search, label: "Search Designs", action: handleSearchDesigns, keepOpen: false },
-    { icon: Save, label: "Saved Designs", action: handleSavedDesigns, keepOpen: false },
-    { icon: History, label: "History", action: handleHistory, keepOpen: true },
+    { icon: Plus, label: "New Chat", action: createNewChat },
+    { icon: Search, label: "Search Designs", action: handleSearchDesigns },
+    { icon: Save, label: "Saved Designs", action: handleSavedDesigns },
+    { icon: History, label: "History", action: handleHistory },
   ]
 
   if (authLoading) {
@@ -702,145 +720,6 @@ export default function ChatbotPage() {
 
   return (
     <div className="min-h-screen chat-background relative overflow-hidden overflow-x-hidden">
-
-      {/* Feedback Dialog */}
-      <Dialog open={showFeedback} onOpenChange={(open) => {
-        if (!feedbackSuccess) setShowFeedback(open)
-      }}>
-        <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          {!feedbackSuccess ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>We value your feedback!</DialogTitle>
-                <DialogDescription>
-                  Help us improve your design experience.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="grid gap-6 py-4">
-                {/* Question 1 */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">1. Was Clairvyn easy to use for you?</h4>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q1: 'up' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q1 === 'up' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsUp className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q1: 'down' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q1 === 'down' ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsDown className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Question 2 */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">2. Did Clairvyn save you time on your tasks?</h4>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q2: 'up' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q2 === 'up' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsUp className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q2: 'down' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q2 === 'down' ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsDown className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Question 3 */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">3. Would you keep using Clairvyn in your daily workflow?</h4>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q3: 'up' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q3 === 'up' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsUp className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => setFeedbackAnswers(prev => ({ ...prev, q3: 'down' }))}
-                      className={`p-2 rounded-full transition-colors ${feedbackAnswers.q3 === 'down' ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400'}`}
-                    >
-                      <ThumbsDown className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Conditional Text Area */}
-                {(feedbackAnswers.q1 === 'down' || feedbackAnswers.q2 === 'down' || feedbackAnswers.q3 === 'down') && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2"
-                  >
-                    <h4 className="font-medium text-sm text-gray-600 dark:text-gray-300">
-                      Please share details of why you chose that:
-                    </h4>
-                    <Textarea
-                      placeholder="Your feedback helps us improve..."
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      className="resize-none"
-                    />
-                  </motion.div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowFeedback(false)
-                    setFeedbackSubmitted(true)
-                  }}
-                >
-                  Skip
-                </Button>
-                <Button
-                  onClick={() => {
-                    setFeedbackSuccess(true)
-                    setFeedbackSubmitted(true)
-                  }}
-                  disabled={!feedbackAnswers.q1 || !feedbackAnswers.q2 || !feedbackAnswers.q3}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
-                >
-                  Submit Feedback
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="py-10 text-center space-y-4"
-            >
-              <div className="text-4xl">🙌</div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Thanks for beta testing with us!
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Clairvyn 1.0 launches Jan 2026, see you soon 🚀
-              </p>
-              <Button
-                onClick={() => setShowFeedback(false)}
-                className="mt-4"
-                variant="outline"
-              >
-                Close
-              </Button>
-            </motion.div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Guest Banner - Temporarily disabled for demo */}
       {false && showGuestBanner && (
@@ -874,63 +753,7 @@ export default function ChatbotPage() {
         </motion.div>
       )}
 
-      {/* Header */}
-      <header className="relative z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-center relative px-4 sm:px-6 py-3 sm:py-4">
-          {/* Left: Dashboard Icon */}
-          <motion.button
-            onClick={() => setIsSidebarOpen(true)}
-            className="absolute left-2 sm:left-6 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-300" />
-          </motion.button>
-
-          {/* Center: Company Name */}
-          <div className="text-center">
-            <motion.h1
-              className="text-xl sm:text-2xl font-bold text-charcoal dark:text-white leading-relaxed"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              Clairvyn
-            </motion.h1>
-            <motion.span
-              className="text-xs text-gray-500 dark:text-gray-400 tracking-widest block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              BETA
-            </motion.span>
-          </div>
-
-          {/* Right: User Info */}
-          <div className="absolute right-2 sm:right-6 flex items-center gap-2 sm:gap-3">
-            {user && (
-              <>
-                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                  {user.email}
-                </span>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                  <span className="sm:hidden">Out</span>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Sidebar */}
+      {/* Mobile Sidebar Drawer (desktop uses persistent sidebar) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -942,197 +765,219 @@ export default function ChatbotPage() {
               exit={{ opacity: 0 }}
               onClick={() => {
                 setIsSidebarOpen(false)
-                setSidebarView("menu")
               }}
             />
 
             {/* Sidebar */}
             <motion.div
-              className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-900 shadow-2xl z-50"
+              className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-gray-100/95 dark:bg-gray-900 shadow-2xl z-50"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
             >
-              <div className="p-4 sm:p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <h2 className="text-lg sm:text-xl font-bold text-charcoal dark:text-white">
-                    {sidebarView === "menu" ? "Dashboard" : "Chat History"}
-                  </h2>
-                  <motion.button
-                    onClick={() => {
-                      if (sidebarView === "history") {
-                        setSidebarView("menu")
-                      } else {
-                        setIsSidebarOpen(false)
-                        setSidebarView("menu")
-                      }
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {sidebarView === "history" ? (
-                      <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                    ) : (
-                      <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                    )}
-                  </motion.button>
-                </div>
-
-                {/* Sidebar content: Menu or History */}
-                {sidebarView === "menu" ? (
-                  <>
-                    <nav className="space-y-2 mb-6 sm:mb-8">
-                      {sidebarItems.map((item, index) => (
-                        <motion.div
-                          key={item.label}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <button
-                            onClick={() => {
-                              item.action()
-                              if (!item.keepOpen) setIsSidebarOpen(false)
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-200 hover:text-teal-600 dark:hover:text-white w-full text-left"
-                          >
-                            <item.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span className="font-medium text-sm sm:text-base">{item.label}</span>
-                          </button>
-                        </motion.div>
-                      ))}
-                    </nav>
-
-                    {/* Profile Section */}
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-600 to-green-500 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
+              <div className="h-full flex flex-col p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm">
+                      {profileImageUrl ? (
+                        <AvatarImage
+                          src={profileImageUrl}
+                          alt={user?.displayName || "User profile"}
+                          referrerPolicy="no-referrer"
+                          onError={() => setProfileImageUrl(null)}
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-gradient-to-br from-teal-600 to-green-500 text-white">
+                        <User className="w-5 h-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                         {user ? (user.displayName || user.email) : "Guest User"}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-300">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {user ? "Signed in" : "Guest Mode"}
                       </p>
                     </div>
                   </div>
+                  <motion.button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    aria-label="Close sidebar"
+                  >
+                    <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </motion.button>
+                </div>
 
-                  {/* Profile Actions */}
-                  <div className="mt-3 sm:mt-4 space-y-2">
-                    {user ? (
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 w-full text-left"
-                      >
-                        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="font-medium text-sm sm:text-base">Sign Out</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleSignIn}
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-200 hover:text-teal-600 dark:hover:text-white w-full text-left"
-                      >
-                        <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="font-medium text-sm sm:text-base">Sign In</span>
-                      </button>
-                    )}
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      createNewChat()
+                      setIsSidebarOpen(false)
+                    }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Chat
+                  </button>
+                </div>
 
-                    {/* Dark Mode Toggle */}
+                <nav className="mt-5 space-y-1">
+                  {sidebarItems.slice(1).map((item) => (
                     <button
-                      onClick={toggleDarkMode}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-200 hover:text-teal-600 dark:hover:text-white w-full text-left"
+                      key={item.label}
+                      onClick={() => {
+                        item.action()
+                        setIsSidebarOpen(false)
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors"
                     >
-                      <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <span className="font-medium text-sm sm:text-base">Dark Mode</span>
-                      <div className={`ml-auto w-6 h-3 rounded-full transition-colors ${isDarkMode ? 'bg-teal-600' : 'bg-gray-300'
-                        }`}>
-                        <div className={`w-3 h-3 rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-3' : 'translate-x-0'
-                          }`} />
-                      </div>
+                      <item.icon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      {item.label}
                     </button>
+                  ))}
+                </nav>
 
+                <div className="mt-6 border-t border-gray-200/70 dark:border-gray-700/70 pt-4 flex-1 min-h-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400 uppercase">
+                      Recent Chats
+                    </p>
                   </div>
-                    </div>
-                  </>
-                ) : (
-                  /* History view */
-                  <div className="flex flex-col flex-1 min-h-0">
-                    <div className="flex-1 overflow-y-auto -mr-2 pr-2 mt-2">
-                      {!user ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Sign in to save and view your chat history across devices.
-                        </p>
-                      ) : historyLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
-                        </div>
-                      ) : chatSessions.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          No chat history yet. Start a conversation to see it here!
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {chatSessions.map((session) => {
-                            const firstUserMessage = session.messages.find((m) => m.role === "user")
-                            const preview = session.title ?? firstUserMessage?.content?.slice(0, 50) ?? "New chat"
-                            const displayPreview = preview.length >= 50 ? `${preview}...` : preview
-                            const isActive = session.id === currentChatId
 
-                            return (
-                              <div
-                                key={session.id}
-                                className={`flex items-center gap-2 rounded-lg transition-colors ${
-                                  isActive
-                                    ? "bg-teal-100 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800"
-                                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                                }`}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => loadChatSession(session.id)}
-                                  className={`flex-1 min-w-0 p-3 text-left ${
-                                    isActive ? "text-teal-700 dark:text-teal-300" : "text-gray-700 dark:text-gray-200"
-                                  }`}
-                                >
-                                  <p className="font-medium text-sm truncate">{displayPreview}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {new Date(session.updatedAt).toLocaleDateString(undefined, {
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit"
-                                    })}
-                                  </p>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDeleteChat(e, session.id)}
-                                  className="p-2 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
-                                  title="Delete chat"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
+                  <div className="overflow-y-auto -mr-2 pr-2 space-y-1">
+                    {!user ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Sign in to see your recent chats.
+                      </p>
+                    ) : historyLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-teal-600" />
+                      </div>
+                    ) : chatSessions.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No chats yet.
+                      </p>
+                    ) : (
+                      chatSessions.map((session) => {
+                        const firstUserMessage = session.messages.find((m) => m.role === "user")
+                        const preview = session.title ?? firstUserMessage?.content?.slice(0, 50) ?? "New chat"
+                        const displayPreview = preview.length >= 50 ? `${preview}...` : preview
+                        const isActive = session.id === currentChatId
+
+                        return (
+                          <div
+                            key={session.id}
+                            className={`group flex items-center gap-2 rounded-xl transition-colors ${
+                              isActive
+                                ? "bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700"
+                                : "hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => loadChatSession(session.id)}
+                              className="flex-1 min-w-0 px-3 py-2.5 text-left"
+                            >
+                              <p className={`text-sm font-medium truncate ${isActive ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-200"}`}>
+                                {displayPreview}
+                              </p>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                {new Date(session.updatedAt).toLocaleDateString(undefined, {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </p>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteChat(e, session.id)}
+                              className="mr-2 p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0 opacity-100"
+                              title="Delete chat"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div className="mt-4 border-t border-gray-200/70 dark:border-gray-700/70 pt-3 space-y-2">
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    Dark mode
+                    <div className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-teal-600" : "bg-gray-300"}`}>
+                      <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`} />
+                    </div>
+                  </button>
+                  {user ? (
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      Sign out
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSignIn}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors"
+                    >
+                      <LogIn className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      Sign in
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <main className="relative z-10 flex flex-col h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)]">
+      {/* Main Content (sidebar is drawer-only; never persistent) */}
+      <div className="relative z-10 flex min-h-screen">
+        <main className="flex-1 flex flex-col min-h-screen">
+          {/* Top bar (matches screenshot: hamburger on mobile, title center, search right) */}
+          <header className="relative bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm">
+            <div className="h-16 flex items-center px-4 sm:px-6">
+              <motion.button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Open sidebar"
+              >
+                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </motion.button>
+
+              <div className="flex-1 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <div className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
+                    Clairvyn 1.0
+                  </div>
+                </div>
+              </div>
+
+              <motion.button
+                onClick={handleLogout}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Profile"
+              >
+                <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </motion.button>
+            </div>
+          </header>
+
         {/* Quote Section */}
         <AnimatePresence>
           {messages.length === 0 && !hasStarted && (
@@ -1151,7 +996,7 @@ export default function ChatbotPage() {
         </AnimatePresence>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-16 pb-32">
+        <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-6 pb-32">
           <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
             {messages.map((message, index) => (
               <motion.div
@@ -1163,8 +1008,8 @@ export default function ChatbotPage() {
               >
                 <div
                   className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-5 rounded-2xl shadow-lg ${message.role === 'user'
-                    ? 'bg-gradient-to-r from-teal-600 to-green-500 text-white w-fit chat-bubble-user'
-                    : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 min-w-[200px] sm:min-w-[280px] chat-bubble-assistant'
+                    ? 'text-gray-800 dark:text-gray-50 w-fit chat-bubble-user'
+                    : 'text-gray-800 dark:text-gray-100 min-w-[200px] sm:min-w-[280px] chat-bubble-assistant'
                     }`}
                 >
                   <p className="text-sm sm:text-base leading-relaxed">{message.content}</p>
@@ -1184,25 +1029,27 @@ export default function ChatbotPage() {
                         )
                       })()}
                       {((message as any).extra_data?.dxf_url || (message as any).extra_data?.document_id) && (
-                        <div className="flex flex-wrap gap-2">
-                          <Button
+                        <div className="flex flex-wrap gap-2.5 mt-3">
+                          <motion.button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit text-teal-600 dark:text-teal-400 border-teal-300 dark:border-teal-700"
+                            whileHover={{ scale: 1.03, y: -1 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500/10 to-blue-500/10 dark:from-indigo-500/20 dark:to-blue-500/20 border border-indigo-200/70 dark:border-indigo-500/30 px-4 py-2.5 text-sm font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-400/40 transition-all"
                             onClick={() => downloadPng((message as any).extra_data?.document_id || "floorplan")}
                           >
-                            Download image
-                          </Button>
-                          <Button
+                            <Download className="w-4 h-4" />
+                            <span>Download PNG</span>
+                          </motion.button>
+                          <motion.button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit text-teal-600 dark:text-teal-400 border-teal-300 dark:border-teal-700"
+                            whileHover={{ scale: 1.03, y: -1 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 dark:from-violet-500/20 dark:to-purple-500/20 border border-violet-200/70 dark:border-violet-500/30 px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-violet-300 dark:hover:border-violet-400/40 transition-all"
                             onClick={() => downloadDxf((message as any).extra_data?.document_id || (message as any).extra_data?.dxf_url?.split("/").pop()?.replace(".dxf", "") || "floorplan")}
                           >
-                            Download DXF file
-                          </Button>
+                            <FileDown className="w-4 h-4" />
+                            <span>Download DXF</span>
+                          </motion.button>
                         </div>
                       )}
 
@@ -1213,7 +1060,7 @@ export default function ChatbotPage() {
                       )}
                     </div>
                   ) : null}
-                  <p className={`text-xs mt-2 sm:mt-3 ${message.role === 'user' ? 'text-teal-100' : 'text-gray-500 dark:text-gray-400'
+                  <p className={`text-xs mt-2 sm:mt-3 ${message.role === 'user' ? 'text-gray-500 dark:text-indigo-100/70' : 'text-gray-500 dark:text-gray-400'
                     }`}>
                     {message.timestamp
                       ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -1235,7 +1082,7 @@ export default function ChatbotPage() {
                   transition={{ duration: 0.2 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 p-3 sm:p-4 rounded-2xl shadow-lg">
+                  <div className="chat-bubble-assistant text-gray-800 dark:text-gray-200 p-3 sm:p-4 rounded-2xl shadow-lg">
                     <p className="text-sm sm:text-base leading-relaxed">Designing...</p>
                     <TypingIndicator />
                   </div>
@@ -1250,7 +1097,7 @@ export default function ChatbotPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="bg-white border-2 border-gray-200 text-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg">
+                <div className="chat-bubble-assistant text-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg">
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin text-teal-600" />
                     <span className="text-xs sm:text-sm">Clairvyn is thinking...</span>
@@ -1306,7 +1153,8 @@ export default function ChatbotPage() {
             </motion.button>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
 
       <PaymentPaywallModal
         open={showPaywall}

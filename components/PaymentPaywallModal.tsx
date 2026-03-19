@@ -1,27 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2, Sparkles, Zap, Crown, X, Check } from "lucide-react"
 import { getBackendUrl } from "@/lib/backendApi"
 
 const PAYWALL_PRICE_INR = 9999999
 const FREE_GENERATIONS = 6
 
+const features = [
+  "Unlimited floor plan generations",
+  "Multi-step design refinement",
+  "DXF & PNG downloads",
+  "Priority AI processing",
+]
+
 type PaymentPaywallModalProps = {
   open: boolean
   onClose: () => void
   isDarkMode: boolean
-  /** When true, user is logged in and we can call payment API. */
   hasUser: boolean
   getToken: () => Promise<string | null>
   onSignInClick: () => void
@@ -92,74 +94,201 @@ export function PaymentPaywallModal({
     onClose()
   }
 
-  const bg = isDarkMode
-    ? "bg-gray-900 border-gray-700 text-gray-100"
-    : "bg-white border-gray-200 text-gray-900"
-  const muted = isDarkMode ? "text-gray-400" : "text-gray-600"
-  const btnPrimary =
-    "bg-gradient-to-r from-teal-600 to-green-500 hover:from-teal-500 hover:to-green-400 text-white border-0 shadow-md"
+  const shellGradient = isDarkMode
+    ? "bg-gradient-to-br from-slate-900/96 via-indigo-950/92 to-slate-900/96 border border-white/10 shadow-[0_28px_70px_rgba(0,0,0,0.55)]"
+    : "bg-gradient-to-br from-[#fbfaff] via-[#f7f7ff] to-[#f5fbff] border border-indigo-200/70 shadow-[0_24px_64px_rgba(96,110,190,0.20)]"
+  const glowTop = isDarkMode
+    ? "bg-[radial-gradient(ellipse_at_top_left,rgba(129,140,248,0.22),transparent_62%)]"
+    : "bg-[radial-gradient(ellipse_at_top_left,rgba(129,140,248,0.18),transparent_62%)]"
+  const glowBottom = isDarkMode
+    ? "bg-[radial-gradient(ellipse_at_bottom_right,rgba(99,102,241,0.16),transparent_62%)]"
+    : "bg-[radial-gradient(ellipse_at_bottom_right,rgba(59,130,246,0.12),transparent_62%)]"
+  const textPrimary = isDarkMode ? "text-white" : "text-indigo-950"
+  const textMuted = isDarkMode ? "text-indigo-100/75" : "text-indigo-900/65"
+  const badgeStyle = isDarkMode
+    ? "bg-white/8 border-white/20 text-white"
+    : "bg-white/70 border-indigo-200/80 text-indigo-900"
+  const cardStyle = isDarkMode
+    ? "rounded-2xl bg-white/6 backdrop-blur-sm border border-white/12 p-4 mb-5"
+    : "rounded-2xl bg-white/78 backdrop-blur-sm border border-indigo-200/70 p-4 mb-5"
+  const progressTrack = isDarkMode ? "bg-white/15" : "bg-indigo-100/80"
+  const progressFill = isDarkMode
+    ? "bg-gradient-to-r from-indigo-300 to-sky-300"
+    : "bg-gradient-to-r from-indigo-400 to-sky-400"
+  const primaryBtn = isDarkMode
+    ? "w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0 shadow-lg shadow-indigo-950/60 transition-all hover:-translate-y-0.5"
+    : "w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-500 hover:to-blue-400 border-0 shadow-lg shadow-indigo-200/90 transition-all hover:-translate-y-0.5"
+  const secondaryBtn = isDarkMode ? "text-indigo-100/55 hover:text-indigo-100/90" : "text-indigo-900/45 hover:text-indigo-900/75"
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleMaybeLater()}>
       <DialogContent
-        className={`${bg} border-2 max-w-md shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out`}
+        className="p-0 border-0 bg-transparent shadow-none max-w-[440px] overflow-hidden [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-teal-500/20 p-2">
-              <Sparkles className="h-5 w-5 text-teal-400" />
-            </div>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
-              Unlock more generations
-            </DialogTitle>
-          </div>
-          <DialogDescription className={`${muted} text-left pt-1`}>
-            You&apos;ve used your <strong className="text-teal-500 dark:text-teal-400">{FREE_GENERATIONS} free generations</strong>.
-            {hasUser
-              ? " Pay with PhonePe to continue designing floor plans."
-              : " Sign in and pay with PhonePe to get unlimited access."}
-          </DialogDescription>
-        </DialogHeader>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 20 }}
+          transition={{ type: "spring", damping: 22, stiffness: 260 }}
+          className={`relative rounded-3xl overflow-hidden ${shellGradient}`}
+        >
+          {/* Gradient background shell */}
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent" />
+          <div className={`absolute inset-0 ${glowTop}`} />
+          <div className={`absolute inset-0 ${glowBottom}`} />
 
-        <div className={`rounded-xl border ${isDarkMode ? "bg-gray-800/50 border-gray-600" : "bg-gray-50 border-gray-200"} px-4 py-3`}>
-          <p className={`text-sm ${muted}`}>
-            One-time unlock — <span className="font-semibold text-teal-600 dark:text-teal-400">₹{PAYWALL_PRICE_INR}</span> via PhonePe (UPI, cards, net banking)
-          </p>
-        </div>
-
-        {error && (
-          <p className="text-sm text-red-500 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
-
-        <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
-          {hasUser ? (
-            <Button
-              onClick={handlePayWithPhonePe}
-              disabled={payLoading}
-              className={btnPrimary}
+          {/* Content */}
+          <div className="relative z-10 px-7 pt-7 pb-6">
+            {/* Close button */}
+            <button
+              onClick={handleMaybeLater}
+              className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${isDarkMode ? "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white" : "bg-indigo-100/80 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700"}`}
             >
-              {payLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Pay ₹9999999 with PhonePe"
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`inline-flex items-center gap-1.5 rounded-full backdrop-blur-sm border px-3 py-1 mb-5 ${badgeStyle}`}
+            >
+              <Crown className={`w-3.5 h-3.5 ${isDarkMode ? "text-amber-300" : "text-indigo-500"}`} />
+              <span className="text-xs font-semibold tracking-wide">PREMIUM</span>
+            </motion.div>
+
+            {/* Heading */}
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className={`text-2xl font-bold leading-tight ${textPrimary}`}
+            >
+              You&apos;ve used all {FREE_GENERATIONS} free
+              <br />
+              generations
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className={`mt-2 text-sm ${textMuted}`}
+            >
+              Upgrade to keep designing unlimited floor plans with Clairvyn AI.
+            </motion.p>
+
+            {/* Progress bar */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              className="mt-5 mb-5"
+            >
+              <div className={`flex items-center justify-between text-xs mb-1.5 ${textMuted}`}>
+                <span>Generations used</span>
+                <span className={`font-medium ${isDarkMode ? "text-white/90" : "text-indigo-700"}`}>{FREE_GENERATIONS}/{FREE_GENERATIONS}</span>
+              </div>
+              <div className={`h-2 rounded-full overflow-hidden ${progressTrack}`}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+                  className={`h-full rounded-full ${progressFill}`}
+                />
+              </div>
+            </motion.div>
+
+            {/* Feature list */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className={cardStyle}
+            >
+              <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDarkMode ? "text-indigo-100/50" : "text-indigo-700/60"}`}>What you get</p>
+              <ul className="space-y-2.5">
+                {features.map((feature, i) => (
+                  <motion.li
+                    key={feature}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.35 + i * 0.06 }}
+                    className="flex items-center gap-2.5"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${isDarkMode ? "bg-indigo-300/20" : "bg-indigo-100"}`}>
+                      <Check className={`w-3 h-3 ${isDarkMode ? "text-indigo-200" : "text-indigo-600"}`} />
+                    </div>
+                    <span className={`text-sm ${isDarkMode ? "text-white/90" : "text-indigo-900/85"}`}>{feature}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Price tag */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="flex items-baseline gap-1 mb-4"
+            >
+              <span className={`text-lg font-bold ${isDarkMode ? "text-indigo-100/90" : "text-indigo-700"}`}>₹</span>
+              <span className={`text-4xl font-extrabold ${textPrimary}`}>{PAYWALL_PRICE_INR.toLocaleString("en-IN")}</span>
+              <span className={`text-sm ml-1 ${isDarkMode ? "text-indigo-100/55" : "text-indigo-700/55"}`}>one-time</span>
+            </motion.div>
+
+            {/* Error */}
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-sm text-rose-200 bg-rose-500/20 border border-rose-400/30 rounded-xl px-3 py-2 mb-3"
+                >
+                  {error}
+                </motion.p>
               )}
-            </Button>
-          ) : (
-            <Button onClick={handlePayWithPhonePe} className={btnPrimary}>
-              Sign in to pay with PhonePe
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleMaybeLater}
-            className={isDarkMode ? "border-gray-600 text-gray-300 hover:bg-gray-800" : ""}
-          >
-            Maybe later
-          </Button>
-        </DialogFooter>
+            </AnimatePresence>
+
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="flex flex-col gap-2.5"
+            >
+              <Button
+                onClick={handlePayWithPhonePe}
+                disabled={payLoading}
+                className={primaryBtn}
+              >
+                {payLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : hasUser ? (
+                  <span className="flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Pay with PhonePe
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Sign in to upgrade
+                  </span>
+                )}
+              </Button>
+
+              <button
+                onClick={handleMaybeLater}
+                className={`w-full py-2.5 text-sm font-medium transition-colors ${secondaryBtn}`}
+              >
+                Maybe later
+              </button>
+            </motion.div>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   )

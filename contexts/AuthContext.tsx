@@ -10,6 +10,9 @@ import {
   GoogleAuthProvider,
   GithubAuthProvider,
   User as FirebaseUser,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 
@@ -17,11 +20,11 @@ interface AuthContextType {
   user: FirebaseUser | null
   loading: boolean
   isGuest: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   // Social providers can be wired later if needed; keep the surface for now.
-  signInWithGoogle: () => Promise<void>
-  signInWithGithub: () => Promise<void>
+  signInWithGoogle: (options?: { rememberMe?: boolean }) => Promise<void>
+  signInWithGithub: (options?: { rememberMe?: boolean }) => Promise<void>
   logout: () => Promise<void>
   enterGuestMode: () => void
   exitGuestMode: () => void
@@ -35,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [isGuest, setIsGuest] = useState(false)
+
+  const applyAuthPersistence = async (rememberMe: boolean) => {
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
+  }
 
   useEffect(() => {
     const guestMode = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
@@ -71,7 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsGuest(false)
   }
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = true) => {
+    await applyAuthPersistence(rememberMe)
     await signInWithEmailAndPassword(auth, email, password)
     await migrateGuestChats()
   }
@@ -82,14 +90,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("Signed up with email:", email)
   }
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (options?: { rememberMe?: boolean }) => {
+    await applyAuthPersistence(options?.rememberMe ?? true)
     const provider = new GoogleAuthProvider()
     await signInWithPopup(auth, provider)
     await migrateGuestChats()
     console.log("Signed in with Google")
   }
 
-  const signInWithGithub = async () => {
+  const signInWithGithub = async (options?: { rememberMe?: boolean }) => {
+    await applyAuthPersistence(options?.rememberMe ?? true)
     const provider = new GithubAuthProvider()
     await signInWithPopup(auth, provider)
     await migrateGuestChats()
