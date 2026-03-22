@@ -54,8 +54,8 @@ export default function HomePage() {
       console.log('User is authenticated, redirecting to /chatbot')
       router.push("/chatbot")
     } else {
-      console.log('User is not authenticated, redirecting to /signin')
-      router.push("/signin")
+      console.log('User is not authenticated, redirecting to /signup')
+      router.push("/signup")
     }
   }
 
@@ -323,9 +323,9 @@ export default function HomePage() {
               Backed By
             </h3>
             <div className="flex flex-nowrap justify-center items-center gap-8 overflow-x-auto py-2">
-              <img src="/Microsoft-for-Startups.png" alt="Microsoft for Startups" className="h-20 max-w-[200px] w-auto object-contain" />
               <img src="/nvidia-inception.png" alt="NVIDIA Inception" className="h-20 max-w-[200px] w-auto object-contain" />
               <img src="/aws-activate.png" alt="AWS Activate" className="h-20 max-w-[200px] w-auto object-contain" />
+              <img src="/Microsoft-for-Startups.png" alt="Microsoft for Startups" className="h-20 max-w-[200px] w-auto object-contain" />
               <img src="/Amplitude.png" alt="Amplitude" className="h-20 max-w-[200px] w-auto object-contain" />
               <img src="/Auth0.svg.png" alt="Auth0" className="h-20 max-w-[200px] w-auto object-contain" />
             </div>

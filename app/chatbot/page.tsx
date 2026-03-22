@@ -25,6 +25,7 @@ import {
   Trash2,
   Download,
   FileDown,
+  CircleHelp,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import Link from "next/link"
@@ -46,6 +47,7 @@ import { apiFetch, getBackendUrl } from "@/lib/backendApi"
 import { canGuestGenerate, incrementGuestGenerationsUsed, getGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
 import { PaymentPaywallModal } from "@/components/PaymentPaywallModal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
 
 /** Fetches image with Bearer token and displays via blob URL (for auth-protected backend images). */
 function AuthImage({
@@ -108,11 +110,18 @@ function AuthImage({
 }
 
 export default function ChatbotPage() {
-  const { user, logout, loading: authLoading, getIdToken } = useAuth()
+  const { user, logout, loading: authLoading, getIdToken, isGuest } = useAuth()
   const { isDarkMode, toggleDarkMode } = useTheme()
   const router = useRouter()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // used for mobile drawer
+
+  const { startTutorial } = useClairvynOnboarding({
+    authLoading,
+    userUid: user?.uid,
+    isGuest,
+    setIsSidebarOpen,
+  })
   const [hasPaid, setHasPaid] = useState(false)
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
 
@@ -770,15 +779,15 @@ export default function ChatbotPage() {
 
             {/* Sidebar */}
             <motion.div
-              className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-gray-100/95 dark:bg-gray-900 shadow-2xl z-50"
+              className="fixed left-0 top-0 z-50 flex h-full min-h-0 w-80 max-w-[85vw] flex-col bg-gray-100/95 dark:bg-gray-900 shadow-2xl"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
             >
-              <div className="h-full flex flex-col p-4 sm:p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 sm:p-5">
+                <div className="flex shrink-0 items-center justify-between">
+                  <div className="flex items-center gap-3" data-onboarding="sidebar-profile">
                     <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm">
                       {profileImageUrl ? (
                         <AvatarImage
@@ -812,8 +821,10 @@ export default function ChatbotPage() {
                   </motion.button>
                 </div>
 
-                <div className="mt-4">
+                <div className="mt-4 shrink-0">
                   <button
+                    type="button"
+                    data-onboarding="new-chat"
                     onClick={() => {
                       createNewChat()
                       setIsSidebarOpen(false)
@@ -825,7 +836,7 @@ export default function ChatbotPage() {
                   </button>
                 </div>
 
-                <nav className="mt-5 space-y-1">
+                <nav className="mt-5 shrink-0 space-y-1">
                   {sidebarItems.slice(1).map((item) => (
                     <button
                       key={item.label}
@@ -841,14 +852,17 @@ export default function ChatbotPage() {
                   ))}
                 </nav>
 
-                <div className="mt-6 border-t border-gray-200/70 dark:border-gray-700/70 pt-4 flex-1 min-h-0">
-                  <div className="flex items-center justify-between mb-3">
+                <div
+                  className="mt-6 border-t border-gray-200/70 dark:border-gray-700/70 pt-4 flex min-h-0 flex-1 flex-col"
+                  data-onboarding="recent-chats"
+                >
+                  <div className="mb-3 flex shrink-0 items-center justify-between">
                     <p className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400 uppercase">
                       Recent Chats
                     </p>
                   </div>
 
-                  <div className="overflow-y-auto -mr-2 pr-2 space-y-1">
+                  <div className="scrollbar-sidebar min-h-0 flex-1 space-y-1 overflow-y-auto -mr-2 pr-2">
                     {!user ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Sign in to see your recent chats.
@@ -907,8 +921,21 @@ export default function ChatbotPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-gray-200/70 dark:border-gray-700/70 pt-3 space-y-2">
+                <div className="mt-4 shrink-0 border-t border-gray-200/70 dark:border-gray-700/70 pt-3 space-y-2">
+                  {user && !isGuest ? (
+                    <button
+                      type="button"
+                      onClick={() => startTutorial()}
+                      disabled={authLoading}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors disabled:opacity-50"
+                      aria-label="Show app tutorial"
+                    >
+                      <CircleHelp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      App tutorial
+                    </button>
+                  ) : null}
                   <button
+                    type="button"
                     onClick={toggleDarkMode}
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors"
                   >
@@ -996,7 +1023,7 @@ export default function ChatbotPage() {
         </AnimatePresence>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-6 pb-32">
+        <div className="scrollbar-main flex-1 overflow-y-auto px-2 sm:px-4 pt-6 pb-32">
           <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
             {messages.map((message, index) => (
               <motion.div
@@ -1116,22 +1143,25 @@ export default function ChatbotPage() {
             </p>
           )}
           <div className="chat-input">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit(e)
-                }
-              }}
-              placeholder={placeholderText}
-              className="chat-input-field"
-              disabled={isLoading}
-            />
+            <div className="flex-1 min-w-0" data-onboarding="chat-input">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit(e)
+                  }
+                }}
+                placeholder={placeholderText}
+                className="chat-input-field w-full min-w-0"
+                disabled={isLoading}
+              />
+            </div>
             <motion.button
               type="button"
+              data-onboarding="send"
               onClick={handleSubmit}
               disabled={isLoading || !inputValue.trim()}
               className="send-btn"
