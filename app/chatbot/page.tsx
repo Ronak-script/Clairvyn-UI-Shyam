@@ -49,6 +49,7 @@ import {
 } from "@/lib/chat-service"
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
 import { canGuestGenerate, incrementGuestGenerationsUsed, getGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
+import { profileCountryMissing } from "@/lib/meProfile"
 import { PaymentPaywallModal } from "@/components/PaymentPaywallModal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
@@ -248,7 +249,7 @@ export default function ChatbotPage() {
     }
   }, [user, authLoading, router])
 
-  // Fetch has_paid from backend when user is present
+  // Fetch has_paid / profile image; require backend profile country for signed-in (non-guest) users
   useEffect(() => {
     if (!user) {
       setHasPaid(false)
@@ -263,18 +264,23 @@ export default function ChatbotPage() {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (!cancelled) console.log("[Clairvyn] /api/me user details:", data)
-          if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
-          if (!cancelled) {
-            const backendPhoto = getProfileImageFromMe(data)
-            console.log("[Clairvyn] resolved sidebar profile image:", backendPhoto ?? user.photoURL ?? null)
-            setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
+          if (cancelled || !data) return
+          console.log("[Clairvyn] /api/me user details:", data)
+          if (!isGuest && profileCountryMissing(data.profile)) {
+            router.replace("/onboarding/profile")
+            return
           }
+          if (typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+          const backendPhoto = getProfileImageFromMe(data)
+          console.log("[Clairvyn] resolved sidebar profile image:", backendPhoto ?? user.photoURL ?? null)
+          setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
         })
         .catch(() => {})
     })
-    return () => { cancelled = true }
-  }, [user, getIdToken])
+    return () => {
+      cancelled = true
+    }
+  }, [user, isGuest, getIdToken, router])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [typing, setTyping] = useState(false)

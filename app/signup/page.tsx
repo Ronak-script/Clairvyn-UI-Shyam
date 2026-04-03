@@ -6,7 +6,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { ONBOARDING_SESSION_KEY, POST_SIGNUP_PROFILE_SESSION_KEY } from "@/lib/onboardingConstants"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -67,11 +66,7 @@ export default function SignUpPage() {
       }
 
       await signUp(email, password)
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1")
-        sessionStorage.setItem(POST_SIGNUP_PROFILE_SESSION_KEY, "1")
-      }
-      router.push("/onboarding/profile")
+      router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")
     } finally {
@@ -89,11 +84,7 @@ export default function SignUpPage() {
         return
       }
       await signInWithGoogle()
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1")
-        sessionStorage.setItem(POST_SIGNUP_PROFILE_SESSION_KEY, "1")
-      }
-      router.push("/onboarding/profile")
+      router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")
     } finally {

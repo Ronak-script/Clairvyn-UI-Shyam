@@ -9,7 +9,8 @@ import { Home } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { apiFetch } from "@/lib/backendApi"
 import { getCountrySelectOptions } from "@/lib/countryOptions"
-import { POST_SIGNUP_PROFILE_SESSION_KEY } from "@/lib/onboardingConstants"
+import { fetchMeProfile, profileCountryMissing } from "@/lib/meProfile"
+import { ONBOARDING_SESSION_KEY } from "@/lib/onboardingConstants"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,18 +44,32 @@ export default function OnboardingProfilePage() {
   const countryOptions = useMemo(() => getCountrySelectOptions(), [])
 
   useEffect(() => {
-    if (authLoading) return
-    if (!user) {
-      router.replace("/signin")
-      return
+    if (authLoading || !user) return
+
+    let cancelled = false
+
+    void (async () => {
+      const token = await getIdToken()
+      if (cancelled) return
+      if (!token) {
+        router.replace("/signin")
+        return
+      }
+
+      const profile = await fetchMeProfile(token)
+      if (cancelled) return
+      if (!profileCountryMissing(profile)) {
+        router.replace("/chatbot")
+        return
+      }
+
+      setGateOk(true)
+    })()
+
+    return () => {
+      cancelled = true
     }
-    if (typeof window === "undefined") return
-    if (sessionStorage.getItem(POST_SIGNUP_PROFILE_SESSION_KEY) !== "1") {
-      router.replace("/chatbot")
-      return
-    }
-    setGateOk(true)
-  }, [authLoading, user, router])
+  }, [authLoading, user, router, getIdToken])
 
   const countryLabel = useMemo(() => {
     if (!countryCode) return ""
@@ -84,6 +99,10 @@ export default function OnboardingProfilePage() {
         setError("Could not verify your session. Try signing in again.")
         return
       }
+      if (!user) {
+        setError("Could not verify your session. Try signing in again.")
+        return
+      }
 
       const body: { country: string; university: string | null } = {
         country: countryLabel,
@@ -98,7 +117,7 @@ export default function OnboardingProfilePage() {
           token,
         })
         if (typeof window !== "undefined") {
-          sessionStorage.removeItem(POST_SIGNUP_PROFILE_SESSION_KEY)
+          sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1")
         }
         router.replace("/chatbot")
       } catch (err: unknown) {
@@ -108,7 +127,7 @@ export default function OnboardingProfilePage() {
         setIsSubmitting(false)
       }
     },
-    [countryCode, countryLabel, getIdToken, isStudent, university, router]
+    [countryCode, countryLabel, getIdToken, isStudent, university, router, user]
   )
 
   if (authLoading || !gateOk) {
