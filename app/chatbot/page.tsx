@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { handleScriptedInput } from "@/lib/demoScript"
 import TypingIndicator from "@/components/TypingIndicator"
 import {
@@ -14,14 +13,11 @@ import {
   Settings,
   LogOut,
   LogIn,
-  UserPlus,
   Search,
   History,
   Save,
   Plus,
   Loader2,
-  ChevronLeft,
-  ChevronDown,
   Trash2,
   Download,
   FileDown,
@@ -30,7 +26,6 @@ import {
   ThumbsDown,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
-import Link from "next/link"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useRouter } from "next/navigation"
@@ -48,10 +43,11 @@ import {
   loadMessagesForChat,
 } from "@/lib/chat-service"
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
-import { canGuestGenerate, incrementGuestGenerationsUsed, getGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
-import { PaymentPaywallModal } from "@/components/PaymentPaywallModal"
+import { canGuestGenerate, incrementGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
+import { profileCountryMissing } from "@/lib/meProfile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
+import { WaitlistModal } from "@/components/WaitlistModal"
 
 /** Shown while waiting for an assistant turn; phases follow elapsed time; line changes every 20–30s. */
 const ASSISTANT_STATUS_PHASES: readonly (readonly string[])[] = [
@@ -248,7 +244,7 @@ export default function ChatbotPage() {
     }
   }, [user, authLoading, router])
 
-  // Fetch has_paid from backend when user is present
+  // Fetch has_paid / profile image; require backend profile country for signed-in (non-guest) users
   useEffect(() => {
     if (!user) {
       setHasPaid(false)
@@ -263,18 +259,23 @@ export default function ChatbotPage() {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (!cancelled) console.log("[Clairvyn] /api/me user details:", data)
-          if (!cancelled && data && typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
-          if (!cancelled) {
-            const backendPhoto = getProfileImageFromMe(data)
-            console.log("[Clairvyn] resolved sidebar profile image:", backendPhoto ?? user.photoURL ?? null)
-            setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
+          if (cancelled || !data) return
+          console.log("[Clairvyn] /api/me user details:", data)
+          if (!isGuest && profileCountryMissing(data.profile)) {
+            router.replace("/onboarding/profile")
+            return
           }
+          if (typeof data.has_paid === "boolean") setHasPaid(data.has_paid)
+          const backendPhoto = getProfileImageFromMe(data)
+          console.log("[Clairvyn] resolved sidebar profile image:", backendPhoto ?? user.photoURL ?? null)
+          setProfileImageUrl(backendPhoto ?? user.photoURL ?? null)
         })
         .catch(() => {})
     })
-    return () => { cancelled = true }
-  }, [user, getIdToken])
+    return () => {
+      cancelled = true
+    }
+  }, [user, isGuest, getIdToken, router])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [typing, setTyping] = useState(false)
@@ -295,9 +296,9 @@ export default function ChatbotPage() {
   const [backendChatId, setBackendChatId] = useState<string | null>(null)
   const [showGuestBanner, setShowGuestBanner] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
-  const [showPaywall, setShowPaywall] = useState(false)
   const [feedbackByMessage, setFeedbackByMessage] = useState<Record<string, MessageFeedbackState>>({})
   const [feedbackSubmittingByMessage, setFeedbackSubmittingByMessage] = useState<Record<string, boolean>>({})
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
 
   // Chat history state (integrated into sidebar)
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
@@ -596,9 +597,9 @@ export default function ChatbotPage() {
       return // DO NOT call backend — scripted demo handled it
     }
 
-    // Unpaid users: 6 free generations, then paywall
+    // Unpaid users: free generations (localStorage), then waitlist
     if (!hasPaid && !canGuestGenerate()) {
-      setShowPaywall(true)
+      setWaitlistOpen(true)
       return
     }
 
@@ -685,7 +686,12 @@ export default function ChatbotPage() {
       setMessages(updatedHistory)
       console.log("[Clairvyn] handleSubmit: success", { historyLength: updatedHistory.length, assistantContent: (data as any)?.assistant_message?.content });
 
-      if (!hasPaid) incrementGuestGenerationsUsed()
+      if (!hasPaid) {
+        const nextUsed = incrementGuestGenerationsUsed()
+        if (nextUsed >= FREE_GUEST_GENERATIONS) {
+          setWaitlistOpen(true)
+        }
+      }
 
       // Optimistically set chat title in sidebar from first user message
       if (currentChatId) {
@@ -1543,16 +1549,9 @@ export default function ChatbotPage() {
         </main>
       </div>
 
-      <PaymentPaywallModal
-        open={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        isDarkMode={isDarkMode}
-        hasUser={!!user}
-        getToken={getIdToken}
-        onSignInClick={() => {
-          setShowPaywall(false)
-          router.push("/signin")
-        }}
+      <WaitlistModal
+        open={waitlistOpen}
+        onOpenChange={setWaitlistOpen}
       />
     </div>
   )

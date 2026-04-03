@@ -6,7 +6,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { ONBOARDING_SESSION_KEY } from "@/lib/onboardingConstants"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -41,7 +40,6 @@ function GoogleMark() {
 export default function SignUpPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [university, setUniversity] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -62,19 +60,12 @@ export default function SignUpPage() {
         setError("Please enter your name.")
         return
       }
-      if (!university) {
-        setError("Please enter your university.")
-        return
-      }
       if (!acceptedTerms) {
         setError("Please accept the Terms and Conditions to continue.")
         return
       }
 
       await signUp(email, password)
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1")
-      }
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")
@@ -93,9 +84,6 @@ export default function SignUpPage() {
         return
       }
       await signInWithGoogle()
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1")
-      }
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")

@@ -3,7 +3,6 @@
 
 import { motion } from "framer-motion"
 import { Instagram, Linkedin, Mail } from "lucide-react"
-import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
@@ -11,6 +10,7 @@ import { useState, useEffect } from "react"
 import { TermsOfServiceModal } from "@/components/TermsOfServiceModal"
 import { PrivacyPolicyModal } from "@/components/PrivacyPolicyModal"
 import { ConsentNoticeModal } from "@/components/ConsentNoticeModal"
+import { LandingHeader } from "@/components/LandingHeader"
 
 
 export default function HomePage() {
@@ -19,7 +19,6 @@ export default function HomePage() {
   const [termsOpen, setTermsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [consentOpen, setConsentOpen] = useState(false)
-  const [blogOpen, setBlogOpen] = useState(false)
   const [heroStack, setHeroStack] = useState([0, 1, 2] as number[])
   const [leavingId, setLeavingId] = useState<number | null>(null)
 
@@ -83,45 +82,7 @@ export default function HomePage() {
         <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/50 blur-3xl dark:bg-indigo-500/20" />
       </div>
 
-      {/* Top nav */}
-      <header className="fixed top-0 left-0 right-0 z-40">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mt-4 rounded-3xl border border-black/5 bg-white/70 backdrop-blur dark:border-white/10 dark:bg-black/40">
-            <div className="flex items-center justify-between px-4 py-3 md:px-6">
-              <Link href="/" className="flex items-center gap-2">
-                <Image
-                  src="/light.png"
-                  alt="Clairvyn"
-                  width={120}
-                  height={40}
-                  className="dark:hidden"
-                  priority
-                />
-              </Link>
-
-              <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700 dark:text-gray-200">
-                <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</a>
-                <Link href="/pricing" className="hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</Link>
-                <button
-                  onClick={() => setBlogOpen(true)}
-                  className="hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  Blog
-                </button>
-              </nav>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push("/signup")}
-                  className="rounded-full bg-[#1e2bd6] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:shadow-md transition-shadow"
-                >
-                  Sign Up
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <div className="container mx-auto px-4 pt-28 md:pt-36 pb-16 relative z-10">
         <div className="max-w-6xl mx-auto">

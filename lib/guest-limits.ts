@@ -1,5 +1,5 @@
 /** Number of free AI generations for guest users before paywall. */
-export const FREE_GUEST_GENERATIONS = 6
+export const FREE_GUEST_GENERATIONS = 3
 
 const STORAGE_KEY = "guestGenerationsUsed"
 

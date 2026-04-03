@@ -1,130 +1,168 @@
 "use client"
 
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Check, X } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
+import { LandingHeader } from "@/components/LandingHeader"
+import { WaitlistModal } from "@/components/WaitlistModal"
 
 const basicFeatures = [
-  { label: "Limited Prompts", included: true },
-  { label: "Basic Admin", included: true },
-  { label: "Basic Data Retention", included: true },
-  { label: "Generative Floor Plans", included: true },
-  { label: "Custom Data Retention", included: false },
-]
+  { label: "Limited prompts", included: true },
+  { label: "Basic admin", included: true },
+  { label: "Basic data retention", included: true },
+  { label: "Generative floor plans", included: true },
+  { label: "Custom data retention", included: false },
+] as const
 
 const premiumFeatures = [
   "Multi-step design",
   "Unlimited prompts",
-  "Unlimited Users Team",
-  "Advanced Admin",
-  "Custom Data Retention",
-]
+  "Unlimited team seats",
+  "Advanced admin",
+  "Custom data retention",
+] as const
 
 export default function PricingPage() {
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white">
+    <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden overflow-x-hidden">
       <div className="absolute inset-0">
-        <Image src="/pricing_bg.png" alt="Pricing background" fill priority className="object-cover" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(245,246,255,0.9),rgba(241,240,255,0.8))]" />
-        <div className="absolute -left-48 top-24 h-[600px] w-[600px] rounded-full bg-[#b0a2ff]/20 blur-3xl" />
-        <div className="absolute right-[-120px] top-10 h-[260px] w-[260px] rounded-full border border-white/60 bg-white/45 blur-[1px]" />
-        <div className="absolute bottom-[-220px] left-[22%] h-[560px] w-[560px] rounded-full bg-[#c8c4ff]/25 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-[#f6f4ff] dark:from-black dark:via-black dark:to-[#0b0a14]" />
+        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-300/60 blur-3xl dark:bg-purple-500/20" />
+        <div className="absolute -top-24 right-[-220px] h-[560px] w-[560px] rounded-full bg-blue-300/60 blur-3xl dark:bg-blue-500/20" />
+        <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/50 blur-3xl dark:bg-indigo-500/20" />
       </div>
 
-      <header className="fixed top-0 left-0 right-0 z-40">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="mt-4 rounded-3xl border border-black/5 bg-white/70 backdrop-blur">
-            <div className="flex items-center justify-between px-4 py-3 md:px-6">
-              <Link href="/" className="flex items-center gap-2">
-                <Image src="/light.png" alt="Clairvyn" width={120} height={40} priority />
-              </Link>
+      <LandingHeader />
 
-              <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
-                <Link href="/#features" className="hover:text-gray-900 transition-colors">
-                  Features
-                </Link>
-                <Link href="/pricing" className="hover:text-gray-900 transition-colors">
-                  Pricing
-                </Link>
-                <Link href="/#about" className="hover:text-gray-900 transition-colors">
-                  About
-                </Link>
-              </nav>
+      <main className="container mx-auto px-4 pt-28 md:pt-36 pb-20 relative z-10">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="text-center md:text-left"
+          >
+            <p className="text-xs font-semibold tracking-widest text-gray-600 dark:text-gray-300 mb-3">
+              PLANS &amp; PRICING
+            </p>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">
+              Simple plans for every studio
+            </h1>
+            <p className="mt-4 max-w-2xl mx-auto md:mx-0 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+              Start free and upgrade when you need deeper workflows, more prompts, and team-ready controls.
+            </p>
+          </motion.div>
 
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/signup"
-                  className="rounded-full bg-[#1e2bd6] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:shadow-md transition-shadow"
-                >
-                  Sign Up
-                </Link>
+          <motion.section
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }}
+            className="mt-12 grid w-full gap-6 md:grid-cols-2 md:gap-8"
+            aria-label="Pricing tiers"
+          >
+            <article className="flex flex-col rounded-[28px] border border-black/8 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md p-8 shadow-[0_16px_48px_rgba(30,43,214,0.08)]">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-[#0b1a3c] dark:text-white">Basic</h2>
+                <span className="rounded-full border border-black/10 dark:border-white/15 bg-gray-50 dark:bg-white/10 px-3 py-1 text-[10px] font-bold tracking-widest text-gray-600 dark:text-gray-300">
+                  DEFAULT
+                </span>
               </div>
-            </div>
-          </div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Core floor-plan assistance and essentials to get started.
+              </p>
+
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">
+                  Free
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Forever — no card required</p>
+
+              <ul className="mt-8 flex-1 space-y-3 text-sm">
+                {basicFeatures.map((feature) => (
+                  <li key={feature.label} className="flex items-start gap-3 text-gray-700 dark:text-gray-200">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                        feature.included
+                          ? "bg-[#1e2bd6]/10 text-[#1e2bd6] dark:bg-[#1e2bd6]/25 dark:text-[#a5b0ff]"
+                          : "bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500"
+                      }`}
+                      aria-hidden
+                    >
+                      {feature.included ? <Check className="h-3 w-3" strokeWidth={2.5} /> : <X className="h-3 w-3" strokeWidth={2.5} />}
+                    </span>
+                    <span className="leading-snug">{feature.label}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/signup"
+                className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-black/10 dark:border-white/15 bg-white dark:bg-white/10 px-6 py-3.5 text-sm font-semibold text-[#0b1a3c] dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-white/15 transition-colors"
+              >
+                Get started free
+              </Link>
+            </article>
+
+            <article className="relative flex flex-col rounded-[28px] border border-[#1e2bd6]/25 dark:border-[#1e2bd6]/40 bg-gradient-to-b from-white to-[#eef0ff] dark:from-white/10 dark:to-[#12122a]/80 backdrop-blur-md p-8 shadow-[0_24px_70px_rgba(30,43,214,0.14)] ring-1 ring-[#1e2bd6]/10 dark:ring-[#1e2bd6]/20">
+              <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#1e2bd6]/40 to-transparent dark:via-[#6b7cff]/50" aria-hidden />
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-[#0b1a3c] dark:text-white">Company</h2>
+                <span className="rounded-full bg-[#1e2bd6] px-3 py-1 text-[10px] font-bold tracking-widest text-white shadow-sm">
+                  PREMIUM
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Full workspace power for teams that live in iteration and reviews.
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-baseline gap-1">
+                <span className="text-lg font-semibold text-gray-500 dark:text-gray-400">₹</span>
+                <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">299</span>
+                <span className="text-base font-medium text-gray-600 dark:text-gray-300">/month</span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Billed monthly · cancel anytime</p>
+
+              <ul className="mt-8 flex-1 space-y-3 text-sm">
+                {premiumFeatures.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-gray-700 dark:text-gray-200">
+                    <span
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1e2bd6]/10 text-[#1e2bd6] dark:bg-[#1e2bd6]/25 dark:text-[#a5b0ff]"
+                      aria-hidden
+                    >
+                      <Check className="h-3 w-3" strokeWidth={2.5} />
+                    </span>
+                    <span className="leading-snug">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                type="button"
+                onClick={() => setWaitlistOpen(true)}
+                className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#1e2bd6] px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
+              >
+                Join waitlist
+              </button>
+            </article>
+          </motion.section>
+
+          <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} />
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.45, delay: 0.14 }}
+            className="mt-14 text-center md:text-left"
+          >
+            <Link href="/" className="text-sm font-semibold text-[#1e2bd6] hover:underline">
+              ← Back to home
+            </Link>
+          </motion.p>
         </div>
-      </header>
-
-      <main className="relative z-20 mx-auto flex max-w-5xl flex-col items-center px-5 py-28 md:px-8 md:py-32">
-        <h1 className="text-4xl font-extrabold tracking-tight text-[#1f3f97] md:text-[44px]">Plans &amp; Pricing</h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-[#6e7391] md:text-lg">
-          Whether your time-saving automation needs are large or small, we&apos;re here to help you scale.
-        </p>
-
-        <section className="mt-6 grid w-full gap-6 pb-6 md:grid-cols-2 md:gap-8">
-          <article className="w-full rounded-[20px] border border-white/35 bg-gradient-to-br from-[#7f95f1] to-[#6e86df] p-5 text-white shadow-[0_16px_30px_rgba(40,58,152,0.28)]">
-            <div className="flex justify-end">
-              <span className="rounded-full bg-[#3f4a8d]/80 px-4 py-1 text-[9px] font-bold tracking-[0.16em]">DEFAULT</span>
-            </div>
-
-            <div className="mt-2 flex items-end gap-1">
-              <span className="text-2xl font-bold opacity-85">₹</span>
-              <span className="text-[34px] font-extrabold leading-none">FREE</span>
-            </div>
-
-            <h2 className="mt-3 text-[30px] font-medium">Basic</h2>
-            <p className="mt-1 max-w-[300px] text-sm leading-relaxed text-white/90">Automation plus enterprise-grade features.</p>
-
-            <ul className="mt-4 space-y-1.5 text-[15px]">
-              {basicFeatures.map((feature) => (
-                <li key={feature.label} className="flex items-center gap-3 text-white/95">
-                  <span className={feature.included ? "text-white/90" : "text-[#ff8a7a]"}>{feature.included ? "✓" : "✕"}</span>
-                  <span>{feature.label}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button className="mt-5 w-full rounded-full bg-[#162f8f] py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#1b3ba7]">
-              Choose plan
-            </button>
-          </article>
-
-          <article className="w-full rounded-[20px] border border-white/40 bg-gradient-to-br from-[#7c97ff] to-[#183da8] p-5 text-white shadow-[0_20px_36px_rgba(22,41,127,0.34)]">
-            <div className="flex justify-end">
-              <span className="rounded-full bg-[#2a2d73]/80 px-4 py-1 text-[9px] font-bold tracking-[0.16em]">PREMIUM</span>
-            </div>
-
-            <div className="mt-2 flex items-end gap-1">
-              <span className="text-2xl font-bold opacity-85">₹</span>
-              <span className="text-[34px] font-extrabold leading-none">299</span>
-              <span className="mb-1 text-lg text-white/90">/month</span>
-            </div>
-
-            <h2 className="mt-3 text-[30px] font-medium">Company</h2>
-            <p className="mt-1 max-w-[300px] text-sm leading-relaxed text-white/90">Automation plus enterprise-grade features.</p>
-
-            <ul className="mt-4 space-y-1.5 text-[15px] text-white/95">
-              {premiumFeatures.map((feature) => (
-                <li key={feature} className="flex items-center gap-3">
-                  <span className="text-white/90">✓</span>
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button className="mt-5 w-full rounded-full bg-[#89a4ff]/90 py-2.5 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors hover:bg-[#99b0ff]">
-              Choose plan
-            </button>
-          </article>
-        </section>
       </main>
     </div>
   )
