@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Check, X } from "lucide-react"
 import Link from "next/link"
 import { LandingHeader } from "@/components/LandingHeader"
+import { WaitlistModal } from "@/components/WaitlistModal"
 
 const basicFeatures = [
   { label: "Limited prompts", included: true },
@@ -22,6 +24,8 @@ const premiumFeatures = [
 ] as const
 
 export default function PricingPage() {
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden overflow-x-hidden">
       <div className="absolute inset-0">
@@ -136,14 +140,17 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href="/signup"
+              <button
+                type="button"
+                onClick={() => setWaitlistOpen(true)}
                 className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#1e2bd6] px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
               >
-                Choose Company plan
-              </Link>
+                Join waitlist
+              </button>
             </article>
           </motion.section>
+
+          <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} />
 
           <motion.p
             initial={{ opacity: 0 }}

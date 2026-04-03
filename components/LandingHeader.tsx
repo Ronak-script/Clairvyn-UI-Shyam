@@ -4,11 +4,19 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+import { cn } from "@/lib/utils"
+
 export function LandingHeader() {
   const router = useRouter()
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40">
+    <header
+      className={cn(
+        "fixed left-0 right-0 top-0 z-40",
+        /* Pairs with Radix/react-remove-scroll body margin when dialogs lock scroll */
+        "width-before-scroll-bar"
+      )}
+    >
       <div className="mx-auto max-w-6xl px-4">
         <div className="mt-4 rounded-3xl border border-black/5 bg-white/70 backdrop-blur dark:border-white/10 dark:bg-black/40">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
