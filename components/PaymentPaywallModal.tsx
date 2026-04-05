@@ -23,7 +23,6 @@ const features = [
 type PaymentPaywallModalProps = {
   open: boolean
   onClose: () => void
-  isDarkMode: boolean
   hasUser: boolean
   getToken: () => Promise<string | null>
   onSignInClick: () => void
@@ -32,7 +31,6 @@ type PaymentPaywallModalProps = {
 export function PaymentPaywallModal({
   open,
   onClose,
-  isDarkMode,
   hasUser,
   getToken,
   onSignInClick,
@@ -94,31 +92,23 @@ export function PaymentPaywallModal({
     onClose()
   }
 
-  const shellGradient = isDarkMode
-    ? "bg-gradient-to-br from-slate-900/96 via-indigo-950/92 to-slate-900/96 border border-white/10 shadow-[0_28px_70px_rgba(0,0,0,0.55)]"
-    : "bg-gradient-to-br from-[#fbfaff] via-[#f7f7ff] to-[#f5fbff] border border-indigo-200/70 shadow-[0_24px_64px_rgba(96,110,190,0.20)]"
-  const glowTop = isDarkMode
-    ? "bg-[radial-gradient(ellipse_at_top_left,rgba(129,140,248,0.22),transparent_62%)]"
-    : "bg-[radial-gradient(ellipse_at_top_left,rgba(129,140,248,0.18),transparent_62%)]"
-  const glowBottom = isDarkMode
-    ? "bg-[radial-gradient(ellipse_at_bottom_right,rgba(99,102,241,0.16),transparent_62%)]"
-    : "bg-[radial-gradient(ellipse_at_bottom_right,rgba(59,130,246,0.12),transparent_62%)]"
-  const textPrimary = isDarkMode ? "text-white" : "text-indigo-950"
-  const textMuted = isDarkMode ? "text-indigo-100/75" : "text-indigo-900/65"
-  const badgeStyle = isDarkMode
-    ? "bg-white/8 border-white/20 text-white"
-    : "bg-white/70 border-indigo-200/80 text-indigo-900"
-  const cardStyle = isDarkMode
-    ? "rounded-2xl bg-white/6 backdrop-blur-sm border border-white/12 p-4 mb-5"
-    : "rounded-2xl bg-white/78 backdrop-blur-sm border border-indigo-200/70 p-4 mb-5"
-  const progressTrack = isDarkMode ? "bg-white/15" : "bg-indigo-100/80"
-  const progressFill = isDarkMode
-    ? "bg-gradient-to-r from-indigo-300 to-sky-300"
-    : "bg-gradient-to-r from-indigo-400 to-sky-400"
-  const primaryBtn = isDarkMode
-    ? "w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0 shadow-lg shadow-indigo-950/60 transition-all hover:-translate-y-0.5"
-    : "w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-500 hover:to-blue-400 border-0 shadow-lg shadow-indigo-200/90 transition-all hover:-translate-y-0.5"
-  const secondaryBtn = isDarkMode ? "text-indigo-100/55 hover:text-indigo-100/90" : "text-indigo-900/45 hover:text-indigo-900/75"
+  const shellGradient =
+    "bg-gradient-to-br from-[#fbfaff] via-[#f7f7ff] to-[#f5fbff] border border-indigo-200/70 shadow-[0_24px_64px_rgba(96,110,190,0.20)]"
+  const glowTop =
+    "bg-[radial-gradient(ellipse_at_top_left,rgba(129,140,248,0.18),transparent_62%)]"
+  const glowBottom =
+    "bg-[radial-gradient(ellipse_at_bottom_right,rgba(59,130,246,0.12),transparent_62%)]"
+  const textPrimary = "text-indigo-950"
+  const textMuted = "text-indigo-900/65"
+  const badgeStyle =
+    "bg-white/70 border-indigo-200/80 text-indigo-900"
+  const cardStyle =
+    "rounded-2xl bg-white/78 backdrop-blur-sm border border-indigo-200/70 p-4 mb-5"
+  const progressTrack = "bg-indigo-100/80"
+  const progressFill = "bg-gradient-to-r from-indigo-400 to-sky-400"
+  const primaryBtn =
+    "w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-500 hover:to-blue-400 border-0 shadow-lg shadow-indigo-200/90 transition-all hover:-translate-y-0.5"
+  const secondaryBtn = "text-indigo-900/45 hover:text-indigo-900/75"
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleMaybeLater()}>
@@ -133,33 +123,28 @@ export function PaymentPaywallModal({
           transition={{ type: "spring", damping: 22, stiffness: 260 }}
           className={`relative rounded-3xl overflow-hidden ${shellGradient}`}
         >
-          {/* Gradient background shell */}
           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent" />
           <div className={`absolute inset-0 ${glowTop}`} />
           <div className={`absolute inset-0 ${glowBottom}`} />
 
-          {/* Content */}
           <div className="relative z-10 px-7 pt-7 pb-6">
-            {/* Close button */}
             <button
               onClick={handleMaybeLater}
-              className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${isDarkMode ? "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white" : "bg-indigo-100/80 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700"}`}
+              className="absolute top-4 right-4 p-1.5 rounded-full transition-colors bg-indigo-100/80 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className={`inline-flex items-center gap-1.5 rounded-full backdrop-blur-sm border px-3 py-1 mb-5 ${badgeStyle}`}
             >
-              <Crown className={`w-3.5 h-3.5 ${isDarkMode ? "text-amber-300" : "text-indigo-500"}`} />
+              <Crown className="w-3.5 h-3.5 text-indigo-500" />
               <span className="text-xs font-semibold tracking-wide">PREMIUM</span>
             </motion.div>
 
-            {/* Heading */}
             <motion.h2
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -180,7 +165,6 @@ export function PaymentPaywallModal({
               Upgrade to keep designing unlimited floor plans with Clairvyn AI.
             </motion.p>
 
-            {/* Progress bar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -189,7 +173,7 @@ export function PaymentPaywallModal({
             >
               <div className={`flex items-center justify-between text-xs mb-1.5 ${textMuted}`}>
                 <span>Generations used</span>
-                <span className={`font-medium ${isDarkMode ? "text-white/90" : "text-indigo-700"}`}>{FREE_GENERATIONS}/{FREE_GENERATIONS}</span>
+                <span className="font-medium text-indigo-700">{FREE_GENERATIONS}/{FREE_GENERATIONS}</span>
               </div>
               <div className={`h-2 rounded-full overflow-hidden ${progressTrack}`}>
                 <motion.div
@@ -201,14 +185,13 @@ export function PaymentPaywallModal({
               </div>
             </motion.div>
 
-            {/* Feature list */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className={cardStyle}
             >
-              <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDarkMode ? "text-indigo-100/50" : "text-indigo-700/60"}`}>What you get</p>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-indigo-700/60">What you get</p>
               <ul className="space-y-2.5">
                 {features.map((feature, i) => (
                   <motion.li
@@ -218,28 +201,26 @@ export function PaymentPaywallModal({
                     transition={{ delay: 0.35 + i * 0.06 }}
                     className="flex items-center gap-2.5"
                   >
-                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${isDarkMode ? "bg-indigo-300/20" : "bg-indigo-100"}`}>
-                      <Check className={`w-3 h-3 ${isDarkMode ? "text-indigo-200" : "text-indigo-600"}`} />
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center bg-indigo-100">
+                      <Check className="w-3 h-3 text-indigo-600" />
                     </div>
-                    <span className={`text-sm ${isDarkMode ? "text-white/90" : "text-indigo-900/85"}`}>{feature}</span>
+                    <span className="text-sm text-indigo-900/85">{feature}</span>
                   </motion.li>
                 ))}
               </ul>
             </motion.div>
 
-            {/* Price tag */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
               className="flex items-baseline gap-1 mb-4"
             >
-              <span className={`text-lg font-bold ${isDarkMode ? "text-indigo-100/90" : "text-indigo-700"}`}>₹</span>
+              <span className="text-lg font-bold text-indigo-700">₹</span>
               <span className={`text-4xl font-extrabold ${textPrimary}`}>{PAYWALL_PRICE_INR.toLocaleString("en-IN")}</span>
-              <span className={`text-sm ml-1 ${isDarkMode ? "text-indigo-100/55" : "text-indigo-700/55"}`}>one-time</span>
+              <span className="text-sm ml-1 text-indigo-700/55">one-time</span>
             </motion.div>
 
-            {/* Error */}
             <AnimatePresence>
               {error && (
                 <motion.p
@@ -253,7 +234,6 @@ export function PaymentPaywallModal({
               )}
             </AnimatePresence>
 
-            {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

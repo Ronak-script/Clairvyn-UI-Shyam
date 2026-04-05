@@ -18,7 +18,7 @@ export function LandingHeader() {
       )}
     >
       <div className="mx-auto max-w-6xl px-4">
-        <div className="mt-4 rounded-3xl border border-black/5 bg-white/70 backdrop-blur dark:border-white/10 dark:bg-black/40">
+        <div className="mt-4 rounded-3xl border border-black/5 bg-white/70 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
             <Link href="/" className="flex items-center gap-2">
               <Image
@@ -26,16 +26,15 @@ export function LandingHeader() {
                 alt="Clairvyn"
                 width={120}
                 height={40}
-                className="dark:hidden"
                 priority
               />
             </Link>
 
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700 dark:text-gray-200">
-              {/* <Link href="/#features" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</Link> */}
-              <Link href="/pricing" className="hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</Link>
-              <Link href="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About</Link>
-              <Link href="/blog" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
+              {/* <Link href="/#features" className="hover:text-gray-900 transition-colors">Features</Link> */}
+              <Link href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link>
+              <Link href="/about" className="hover:text-gray-900 transition-colors">About</Link>
+              <Link href="/blog" className="hover:text-gray-900 transition-colors">
                 Blog
               </Link>
             </nav>

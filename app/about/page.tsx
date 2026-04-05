@@ -21,12 +21,12 @@ const highlights = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden overflow-x-hidden">
+    <div className="min-h-screen bg-white relative overflow-hidden overflow-x-hidden">
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-[#f6f4ff] dark:from-black dark:via-black dark:to-[#0b0a14]" />
-        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-300/60 blur-3xl dark:bg-purple-500/20" />
-        <div className="absolute -top-24 right-[-220px] h-[560px] w-[560px] rounded-full bg-blue-300/60 blur-3xl dark:bg-blue-500/20" />
-        <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/50 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-[#f6f4ff]" />
+        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-300/60 blur-3xl" />
+        <div className="absolute -top-24 right-[-220px] h-[560px] w-[560px] rounded-full bg-blue-300/60 blur-3xl" />
+        <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/50 blur-3xl" />
       </div>
 
       <LandingHeader />
@@ -38,13 +38,13 @@ export default function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
           >
-            <p className="text-xs font-semibold tracking-widest text-gray-600 dark:text-gray-300 mb-3">
+            <p className="text-xs font-semibold tracking-widest text-gray-600 mb-3">
               CLAIRVYN
             </p>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c]">
               About us
             </h1>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="mt-4 text-lg text-gray-600 leading-relaxed">
             Clairvyn creates AI powered CAD software. Our mission is to democratise access to spatially aware artificial intelligence, empowering human creativity and innovation.
             </p>
           </motion.div>
@@ -53,7 +53,7 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }}
-            className="mt-10 space-y-5 text-base text-gray-600 dark:text-gray-300 leading-relaxed"
+            className="mt-10 space-y-5 text-base text-gray-600 leading-relaxed"
           >
             <p>
               Clairvyn sits at the intersection of architecture education and AI: we care about precision, iteration,
@@ -75,10 +75,10 @@ export default function AboutPage() {
             {highlights.map((item) => (
               <li
                 key={item.title}
-                className="rounded-[22px] border border-black/8 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md px-5 py-6 shadow-[0_16px_48px_rgba(30,43,214,0.06)]"
+                className="rounded-[22px] border border-black/8 bg-white/70 backdrop-blur-md px-5 py-6 shadow-[0_16px_48px_rgba(30,43,214,0.06)]"
               >
-                <h2 className="text-sm font-bold text-[#0b1a3c] dark:text-white">{item.title}</h2>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{item.text}</p>
+                <h2 className="text-sm font-bold text-[#0b1a3c]">{item.title}</h2>
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">{item.text}</p>
               </li>
             ))}
           </motion.ul>
@@ -103,7 +103,7 @@ export default function AboutPage() {
             </Link>
             <a
               href="mailto:hello@clairvyn.com"
-              className="inline-flex text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#1e2bd6] dark:hover:text-white transition-colors"
+              className="inline-flex text-sm font-semibold text-gray-600 hover:text-[#1e2bd6] transition-colors"
             >
               hello@clairvyn.com
             </a>

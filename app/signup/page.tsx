@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { TermsOfServiceModal } from "@/components/TermsOfServiceModal"
 import { Eye, EyeOff, Home } from "lucide-react"
 
 function GoogleMark() {
@@ -45,7 +44,6 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [termsOpen, setTermsOpen] = useState(false)
 
   const { signUp, signInWithGoogle } = useAuth()
   const router = useRouter()
@@ -206,13 +204,12 @@ export default function SignUpPage() {
                   <label htmlFor="accept-terms" className="cursor-pointer">
                     By registering, you agree to our{" "}
                   </label>
-                  <button
-                    type="button"
+                  <Link
+                    href="/terms-of-service"
                     className="font-semibold text-[#1E3A8A] underline underline-offset-2 hover:text-[#1e40af] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A8A] rounded"
-                    onClick={() => setTermsOpen(true)}
                   >
                     Terms and Conditions
-                  </button>
+                  </Link>
                   <span className="text-gray-700">.</span>
                 </p>
               </div>
@@ -260,7 +257,6 @@ export default function SignUpPage() {
         </div>
       </div>
 
-      <TermsOfServiceModal open={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   )
 }

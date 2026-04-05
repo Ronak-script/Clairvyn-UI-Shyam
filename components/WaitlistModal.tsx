@@ -5,8 +5,6 @@ import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
 import { WaitlistSignup } from "@/components/WaitlistSignup"
-import { useTheme } from "@/contexts/ThemeContext"
-import { cn } from "@/lib/utils"
 
 type WaitlistModalProps = {
   open: boolean
@@ -14,7 +12,6 @@ type WaitlistModalProps = {
 }
 
 export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
-  const { isDarkMode } = useTheme()
   const [formKey, setFormKey] = useState(0)
   const [mounted, setMounted] = useState(false)
   const skipNextReset = useRef(true)
@@ -54,23 +51,13 @@ export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
       }}
     >
       <div
-        className={cn(
-          "relative w-full max-w-md rounded-xl border p-6 shadow-2xl",
-          isDarkMode
-            ? "border-gray-800 bg-gray-900 text-gray-100"
-            : "border-gray-200 bg-white text-gray-900"
-        )}
+        className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className={cn(
-            "absolute right-4 top-4 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2",
-            isDarkMode
-              ? "text-gray-400 ring-offset-gray-900 focus:ring-indigo-400"
-              : "text-gray-500 ring-offset-white focus:ring-[#1e2bd6]"
-          )}
+          className="absolute right-4 top-4 rounded-sm p-1 text-gray-500 opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#1e2bd6] focus:ring-offset-2"
           aria-label="Close"
         >
           <X className="h-4 w-4" aria-hidden />
@@ -78,15 +65,10 @@ export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
         <h2 id="waitlist-modal-title" className="pr-8 text-lg font-semibold tracking-tight">
           Join the waitlist
         </h2>
-        <p
-          className={cn(
-            "mt-1 text-sm",
-            isDarkMode ? "text-gray-400" : "text-gray-600"
-          )}
-        >
+        <p className="mt-1 text-sm text-gray-600">
           Be the first to know when the Company plan is available.
         </p>
-        <WaitlistSignup key={formKey} isDarkMode={isDarkMode} title="" className="mt-4" />
+        <WaitlistSignup key={formKey} title="" className="mt-4" />
       </div>
     </div>,
     document.body

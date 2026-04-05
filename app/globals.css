@@ -5,6 +5,12 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Reject OS dark styling on marketing routes; chatbot sets html.dark + dark when needed */
+    color-scheme: light only;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   :root {
@@ -93,28 +99,26 @@ body::-webkit-scrollbar-thumb:hover {
   background-color: #a78bfa;
 }
 
-.dark html,
-.dark body {
+html.dark,
+html.dark body {
   scrollbar-color: #7c3aed #2e1065;
 }
 
-.dark html::-webkit-scrollbar-track,
-.dark body::-webkit-scrollbar-track {
+html.dark::-webkit-scrollbar-track,
+html.dark body::-webkit-scrollbar-track {
   background: #2e1065;
 }
 
-.dark html::-webkit-scrollbar-thumb,
-.dark body::-webkit-scrollbar-thumb {
+html.dark::-webkit-scrollbar-thumb,
+html.dark body::-webkit-scrollbar-thumb {
   background-color: #7c3aed;
   border-color: #2e1065;
 }
 
-.dark html::-webkit-scrollbar-thumb:hover,
-.dark body::-webkit-scrollbar-thumb:hover {
+html.dark::-webkit-scrollbar-thumb:hover,
+html.dark body::-webkit-scrollbar-thumb:hover {
   background-color: #8b5cf6;
 }
-
-html { scroll-behavior: smooth; }
 
 /* Mobile-specific improvements */
 @media (max-width: 640px) {
@@ -195,16 +199,6 @@ html { scroll-behavior: smooth; }
     background-size: 100% 100%;
   }
 
-  .dark .chat-background {
-    background-color: #070611;
-    background-image:
-      radial-gradient(900px 560px at 55% 10%, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.0) 60%),
-      radial-gradient(800px 520px at 30% 55%, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.0) 62%),
-      radial-gradient(980px 640px at 70% 70%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.0) 60%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-    background-size: 100% 100%;
-  }
-
   .brand-title {
     font-size: 8rem;
     font-weight: 900;
@@ -267,7 +261,6 @@ html { scroll-behavior: smooth; }
     will-change: auto !important;
   }
 
-  /* Landing page background with dark mode */
   body {
     @apply bg-white text-gray-900;
     background-image: 
@@ -277,58 +270,25 @@ html { scroll-behavior: smooth; }
     background-size: 100% 100%, 40px 40px, 40px 40px;
   }
 
+  body {
+    transition: background-color 0.6s ease, color 0.6s ease;
+  }
+
   .dark body {
     background-color: #000000 !important;
     color: #f5f5f5;
     background-image: none !important;
   }
 
-  body {
-    transition: background-color 0.6s ease, color 0.6s ease;
-  }
-
-  /* Force dark mode on html and body */
-  html.dark, body.dark {
+  html.dark {
     background-color: #000000 !important;
     background-image: none !important;
   }
 
-  /* Feature Cards - Landing Page */
   .dark .text-center.p-8.rounded-3xl.bg-white {
     background-color: #111111 !important;
     color: #f0f0f0 !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-
-  /* Chat Page Dark Mode */
-  .dark .chat-background {
-    background-color: #070611 !important;
-    background-image:
-      radial-gradient(900px 560px at 55% 10%, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.0) 60%),
-      radial-gradient(800px 520px at 30% 55%, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.0) 62%),
-      radial-gradient(980px 640px at 70% 70%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.0) 60%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-  }
-
-  .chat-bubble-user {
-    background-image:
-      linear-gradient(140deg, rgba(255, 255, 255, 0.95) 0%, rgba(238, 242, 255, 0.93) 45%, rgba(236, 253, 245, 0.9) 100%);
-    border: 1px solid rgba(165, 180, 252, 0.35);
-    box-shadow: 0 12px 32px rgba(79, 70, 229, 0.12);
-  }
-
-  .dark .chat-bubble-user {
-    background-image:
-      linear-gradient(140deg, rgba(49, 46, 129, 0.62) 0%, rgba(76, 29, 149, 0.56) 55%, rgba(15, 23, 42, 0.62) 100%);
-    border: 1px solid rgba(129, 140, 248, 0.35);
-    box-shadow: 0 16px 36px rgba(6, 8, 25, 0.55);
-  }
-
-  .dark .chat-bubble-assistant {
-    color: #e5e7eb !important;
-    border: 1px solid rgba(148, 163, 184, 0.22) !important;
-    background-image:
-      linear-gradient(145deg, rgba(30, 41, 59, 0.76) 0%, rgba(30, 27, 75, 0.72) 54%, rgba(17, 24, 39, 0.78) 100%) !important;
   }
 
   .dark input[type="text"]:not(.chat-input-field) {
@@ -337,21 +297,25 @@ html { scroll-behavior: smooth; }
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
 
-  /* Footer Dark Mode */
   .dark footer {
     background-color: #000000 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 
-  /* Button Dark Mode */
   .dark .btn-gradient {
     background: linear-gradient(135deg, #0056ff, #00cfff) !important;
   }
 
-  /* Sidebar Dark Mode */
-.dark .bg-white\/80 {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-}
+  .dark .bg-white\/80 {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  .chat-bubble-user {
+    background-image:
+      linear-gradient(140deg, rgba(255, 255, 255, 0.95) 0%, rgba(238, 242, 255, 0.93) 45%, rgba(236, 253, 245, 0.9) 100%);
+    border: 1px solid rgba(165, 180, 252, 0.35);
+    box-shadow: 0 12px 32px rgba(79, 70, 229, 0.12);
+  }
 
 /* Chat Input Container - Smooth Animation */
 .chat-input-container {
@@ -415,14 +379,6 @@ html { scroll-behavior: smooth; }
   }
 }
 
-/* Dark mode support for chat input */
-.dark .chat-input {
-  background-image: linear-gradient(125deg, rgba(30, 41, 59, 0.82) 0%, rgba(49, 46, 129, 0.7) 48%, rgba(17, 24, 39, 0.82) 100%);
-  border: 1px solid rgba(129, 140, 248, 0.32);
-  box-shadow: 0 20px 62px rgba(4, 8, 28, 0.56);
-  backdrop-filter: blur(10px);
-}
-
 /* Input takes remaining space */
 .chat-input-field {
   flex: 1 1 auto;
@@ -433,16 +389,8 @@ html { scroll-behavior: smooth; }
   color: #1f2937;
 }
 
-.dark .chat-input-field {
-  color: #f9fafb;
-}
-
 .chat-input-field::placeholder {
   color: #9ca3af;
-}
-
-.dark .chat-input-field::placeholder {
-  color: #6b7280;
 }
 
 /* Mobile adjustments for input field */
@@ -539,18 +487,6 @@ html { scroll-behavior: smooth; }
     color: transparent;
     animation: chat-loading-text-shimmer 4.8s ease-in-out infinite;
   }
-
-  .dark .chat-loading-text {
-    background-image: linear-gradient(
-      105deg,
-      #5eead4 0%,
-      #99f6e4 18%,
-      #a5b4fc 40%,
-      #22d3ee 58%,
-      #c4b5fd 78%,
-      #5eead4 100%
-    );
-  }
 }
 
 /* Default in-app scrollbars — light purple (match theme); use .scrollbar-sidebar for grey */
@@ -579,23 +515,6 @@ html { scroll-behavior: smooth; }
   background-color: #a78bfa;
 }
 
-.dark .scrollbar-main {
-  scrollbar-color: #7c3aed #1e1b4b;
-}
-
-.dark .scrollbar-main::-webkit-scrollbar-track {
-  background: #1e1b4b;
-}
-
-.dark .scrollbar-main::-webkit-scrollbar-thumb {
-  background-color: #7c3aed;
-  border-color: #1e1b4b;
-}
-
-.dark .scrollbar-main::-webkit-scrollbar-thumb:hover {
-  background-color: #8b5cf6;
-}
-
 /* Sidebar recent-chats list — neutral grey */
 .scrollbar-sidebar {
   scrollbar-width: thin;
@@ -620,23 +539,6 @@ html { scroll-behavior: smooth; }
 
 .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
   background-color: #6b7280;
-}
-
-.dark .scrollbar-sidebar {
-  scrollbar-color: #6b7280 #1f2937;
-}
-
-.dark .scrollbar-sidebar::-webkit-scrollbar-track {
-  background: #1f2937;
-}
-
-.dark .scrollbar-sidebar::-webkit-scrollbar-thumb {
-  background-color: #6b7280;
-  border-color: #1f2937;
-}
-
-.dark .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
 }
 
 /* Smooth transitions for all interactive elements */
@@ -687,6 +589,92 @@ a:focus-visible {
   font-size: 1.12rem;
   font-weight: 400;
   line-height: 1.35;
+}
+
+/* Chat / app dark mode (html.dark only applied while on /chatbot with toggle on) */
+.dark .chat-background {
+  background-color: #070611;
+  background-image:
+    radial-gradient(900px 560px at 55% 10%, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.0) 60%),
+    radial-gradient(800px 520px at 30% 55%, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.0) 62%),
+    radial-gradient(980px 640px at 70% 70%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.0) 60%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background-size: 100% 100%;
+}
+
+.dark .chat-bubble-user {
+  background-image:
+    linear-gradient(140deg, rgba(49, 46, 129, 0.62) 0%, rgba(76, 29, 149, 0.56) 55%, rgba(15, 23, 42, 0.62) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  box-shadow: 0 16px 36px rgba(6, 8, 25, 0.55);
+}
+
+.dark .chat-bubble-assistant {
+  color: #e5e7eb !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  background-image:
+    linear-gradient(145deg, rgba(30, 41, 59, 0.76) 0%, rgba(30, 27, 75, 0.72) 54%, rgba(17, 24, 39, 0.78) 100%) !important;
+}
+
+.dark .chat-input {
+  background-image: linear-gradient(125deg, rgba(30, 41, 59, 0.82) 0%, rgba(49, 46, 129, 0.7) 48%, rgba(17, 24, 39, 0.82) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.32);
+  box-shadow: 0 20px 62px rgba(4, 8, 28, 0.56);
+  backdrop-filter: blur(10px);
+}
+
+.dark .chat-input-field {
+  color: #f9fafb;
+}
+
+.dark .chat-input-field::placeholder {
+  color: #6b7280;
+}
+
+.dark .chat-loading-text {
+  background-image: linear-gradient(
+    105deg,
+    #5eead4 0%,
+    #99f6e4 18%,
+    #a5b4fc 40%,
+    #22d3ee 58%,
+    #c4b5fd 78%,
+    #5eead4 100%
+  );
+}
+
+.dark .scrollbar-main {
+  scrollbar-color: #7c3aed #1e1b4b;
+}
+
+.dark .scrollbar-main::-webkit-scrollbar-track {
+  background: #1e1b4b;
+}
+
+.dark .scrollbar-main::-webkit-scrollbar-thumb {
+  background-color: #7c3aed;
+  border-color: #1e1b4b;
+}
+
+.dark .scrollbar-main::-webkit-scrollbar-thumb:hover {
+  background-color: #8b5cf6;
+}
+
+.dark .scrollbar-sidebar {
+  scrollbar-color: #6b7280 #1f2937;
+}
+
+.dark .scrollbar-sidebar::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.dark .scrollbar-sidebar::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  border-color: #1f2937;
+}
+
+.dark .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
 }
 
 .dark .driver-popover.clairvyn-driver-popover {

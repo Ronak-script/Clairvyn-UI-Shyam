@@ -1,9 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 import { Caveat, Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/contexts/ThemeContext"
+import { DOCUMENT_THEME_SYNC_SCRIPT } from "@/lib/documentTheme"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,8 +43,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`scroll-smooth ${caveat.variable}`}>
+    <html
+      lang="en"
+      className={`scroll-smooth ${caveat.variable}`}
+      suppressHydrationWarning
+      style={{ colorScheme: "light only" }}
+    >
       <body className={inter.className}>
+        <Script
+          id="clairvyn-document-theme"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: DOCUMENT_THEME_SYNC_SCRIPT }}
+        />
         <ThemeProvider>
           <AuthProvider>
             {children}

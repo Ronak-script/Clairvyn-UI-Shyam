@@ -1198,8 +1198,12 @@ export default function ChatbotPage() {
                   >
                     <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Dark mode
-                    <div className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-teal-600" : "bg-gray-300"}`}>
-                      <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`} />
+                    <div
+                      className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-teal-600" : "bg-gray-300"}`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`}
+                      />
                     </div>
                   </button>
                   {user ? (
