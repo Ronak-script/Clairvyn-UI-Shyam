@@ -979,7 +979,7 @@ export default function ChatbotPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e2bd6]" />
       </div>
     )
   }
@@ -1126,7 +1126,7 @@ export default function ChatbotPage() {
                       </p>
                     ) : historyLoading ? (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-teal-600" />
+                        <Loader2 className="w-5 h-5 animate-spin text-[#1e2bd6]" />
                       </div>
                     ) : chatSessions.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1491,20 +1491,31 @@ export default function ChatbotPage() {
               >
                 <div className="chat-bubble-assistant text-gray-700 dark:text-gray-300 p-3 sm:p-4 rounded-2xl shadow-md">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-[#1e2bd6]/20" />
-                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#1e2bd6] border-r-[#1e2bd6] animate-spin" />
+                    {/* Animated house icon */}
+                    <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 dot-loader">
+                      <svg
+                        viewBox="0 0 64 64"
+                        className="w-full h-full"
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        <circle cx="16" cy="32" r="4" fill="#1e2bd6" className="dot dot-1" />
+                        <circle cx="32" cy="32" r="4" fill="#1e2bd6" className="dot dot-2" />
+                        <circle cx="48" cy="32" r="4" fill="#1e2bd6" className="dot dot-3" />
+                      </svg>
                     </div>
-                    <motion.span
-                      key={isTurnInFlight ? assistantStatusLine : "clairvyn-thinking"}
-                      initial={{ opacity: 0, y: 2 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -2 }}
-                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 min-w-0 flex-1"
-                    >
-                      {isTurnInFlight ? assistantStatusLine : "Processing your request"}
-                    </motion.span>
+
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={assistantStatusLine}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 8 }}
+                        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                        className="text-xs sm:text-sm font-medium text-[#1e2bd6] dark:text-indigo-400 min-w-0 flex-1"
+                      >
+                        {assistantStatusLine}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>

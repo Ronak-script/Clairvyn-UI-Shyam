@@ -1241,6 +1241,10 @@ input.success:focus-visible {
   }
 }
 
+.animate-spin-smooth {
+  animation: spin-smooth 2.5s linear infinite;
+}
+
 .spinner-premium {
   display: inline-block;
   width: 20px;
@@ -1346,4 +1350,38 @@ a,
 button:focus-visible,
 a:focus-visible {
   outline-offset: 4px;
+}
+
+/* Three Dot Loading Animation */
+.dot-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  animation: dotPulse 1.4s infinite ease-in-out;
+}
+
+.dot-1 {
+  animation-delay: 0s;
+}
+
+.dot-2 {
+  animation-delay: 0.2s;
+}
+
+.dot-3 {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    r: 4;
+  }
+  30% {
+    opacity: 1;
+    r: 5;
+  }
 }
