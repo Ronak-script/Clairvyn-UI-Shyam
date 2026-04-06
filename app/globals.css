@@ -412,6 +412,16 @@ html.dark body::-webkit-scrollbar-thumb:hover {
   color: #1f2937;
 }
 
+.chat-input-field:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.chat-input-field:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .chat-input-field::placeholder {
   color: #9ca3af;
 }
@@ -741,6 +751,16 @@ a:focus-visible {
 
 .dark .chat-input-field {
   color: #f9fafb;
+}
+
+.dark .chat-input-field:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.dark .chat-input-field:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .dark .chat-input-field::placeholder {

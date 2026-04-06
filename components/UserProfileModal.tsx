@@ -20,6 +20,8 @@ interface UserProfile {
   displayName: string
   photoURL: string | null
   email?: string
+  university?: string
+  location?: string
 }
 
 export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }: UserProfileModalProps) {
@@ -33,6 +35,8 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
     displayName: user?.displayName || "",
     photoURL: user?.photoURL || profileImageUrl,
     email: user?.email || "",
+    university: "",
+    location: "",
   })
 
   useEffect(() => {
@@ -159,6 +163,8 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
         },
         body: JSON.stringify({
           displayName: formData.displayName,
+          university: formData.university,
+          location: formData.location,
         }),
       })
 
@@ -203,7 +209,7 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -211,14 +217,16 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
             transition={{ duration: 0.2 }}
           />
 
-          {/* Modal - Optimized for mobile */}
-          <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 sm:bottom-auto sm:left-1/2 sm:top-1/2 w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl rounded-t-3xl bg-white dark:bg-gray-900 shadow-2xl max-h-[90vh] overflow-hidden"
-            initial={window.innerWidth < 640 ? { y: "100%" } : { scale: 0.95, opacity: 0, y: 20 }}
-            animate={window.innerWidth < 640 ? { y: 0 } : { scale: 1, opacity: 1, y: 0 }}
-            exit={window.innerWidth < 640 ? { y: "100%" } : { scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
-          >
+          {/* Modal Container - Fixed to viewport */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4">
+            {/* Modal - Centered and Scrollable */}
+            <motion.div
+              className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col max-h-[90vh] pointer-events-auto"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+            >
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h2>
@@ -230,8 +238,8 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
               </button>
             </div>
 
-            {/* Content */}
-            <div className="overflow-y-auto p-6 space-y-6">
+            {/* Content - Scrollable */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-6">
               {/* Error Message */}
               {error && (
                 <motion.div
@@ -274,7 +282,12 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
 
                   {/* Photo Upload Button */}
                   <motion.button
-                    onClick={() => fileInputRef.current?.click()}
+                    type="button"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.click()
+                      }
+                    }}
                     disabled={isLoading}
                     className="absolute bottom-0 right-0 rounded-full bg-[#1e2bd6] p-2.5 text-white hover:bg-[#1a24b8] disabled:opacity-50 transition-colors shadow-lg border border-white dark:border-gray-900"
                     whileHover={{ scale: 1.1 }}
@@ -300,25 +313,53 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Full Name
                 </label>
+                {user?.displayName ? (
+                  <div className="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-sm font-medium">
+                    {user.displayName}
+                  </div>
+                ) : (
+                  <Input
+                    name="displayName"
+                    type="text"
+                    value={formData.displayName}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    placeholder="Your name"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-2.5"
+                  />
+                )}
+              </div>
+
+              {/* University Field */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  University / Institution
+                </label>
                 <Input
-                  name="displayName"
+                  name="university"
                   type="text"
-                  value={formData.displayName}
+                  value={formData.university}
                   onChange={handleInputChange}
                   disabled={isLoading}
-                  placeholder="Your name"
+                  placeholder="e.g., Stanford University"
                   className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-2.5"
                 />
               </div>
 
-              {/* Email (Read-only) */}
+              {/* Location Field */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Email
+                  Location
                 </label>
-                <div className="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium">
-                  {formData.email || user?.email || "No email"}
-                </div>
+                <Input
+                  name="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  placeholder="e.g., San Francisco, CA, USA"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-2.5"
+                />
               </div>
 
               {/* Divider */}
@@ -359,6 +400,7 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

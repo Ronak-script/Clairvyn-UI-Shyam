@@ -48,12 +48,61 @@ export default function HomePage() {
     return () => window.clearInterval(id)
   }, [heroStack, leavingId])
 
-  // If already logged in, redirect to chat screen immediately
+  // If already logged in and this is their first visit to landing page in this session, redirect to chat
   useEffect(() => {
     if (loading) return
-    if (user) {
-      router.replace("/chatbot")
+    if (!user) return
+    
+    // Check if user has already interacted with the app
+    const hasVisitedApp = sessionStorage.getItem("hasVisitedApp")
+    const fromChatbot = sessionStorage.getItem("fromChatbot")
+    const lastChatbotActivityTime = sessionStorage.getItem("lastChatbotActivityTime")
+    
+    // If coming from chatbot via Home button, allow landing page access
+    if (fromChatbot === "true") {
+      sessionStorage.removeItem("fromChatbot")
+      sessionStorage.setItem("hasVisitedApp", "true")
+      return
     }
+    
+    // If already visited app in this session, allow landing page access
+    if (hasVisitedApp === "true") {
+      return
+    }
+    
+    // Check if user came from another page (referrer indicates navigation from within app)
+    const referrer = document.referrer
+    const isInternalNavigation = referrer && (
+      referrer.includes("/chatbot") || 
+      referrer.includes("/signin") || 
+      referrer.includes("/signup") ||
+      referrer.includes("/about") ||
+      referrer.includes("/pricing") ||
+      referrer.includes("/privacy-policy")
+    )
+    
+    if (isInternalNavigation) {
+      sessionStorage.setItem("hasVisitedApp", "true")
+      return
+    }
+    
+    // Check if chatbot was recently closed (within 5 seconds)
+    // This allows user to visit landing page if they just closed the chatbot tab
+    const now = Date.now()
+    if (lastChatbotActivityTime) {
+      const timeSinceChatbotActivity = now - parseInt(lastChatbotActivityTime)
+      const RECENT_ACTIVITY_TIMEOUT_MS = 5000 // 5 seconds
+      
+      // If chatbot was active recently, allow landing page access
+      if (timeSinceChatbotActivity < RECENT_ACTIVITY_TIMEOUT_MS) {
+        sessionStorage.setItem("hasVisitedApp", "true")
+        return
+      }
+    }
+    
+    // First time visit by signed-in user - redirect to chatbot
+    sessionStorage.setItem("hasVisitedApp", "true")
+    router.replace("/chatbot")
   }, [user, loading, router])
 
   const handleTryIt = () => {

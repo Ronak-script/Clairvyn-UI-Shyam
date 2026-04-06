@@ -25,6 +25,7 @@ import {
   Globe,
   DollarSign,
   Shield,
+  Info,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { useAuth } from "@/contexts/AuthContext"
@@ -240,12 +241,44 @@ export default function ChatbotPage() {
     return normalizeImageUrl(url)
   }
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (DISABLED FOR LOCAL TESTING)
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/signin")
-    }
+    // TEMPORARILY DISABLED: Allow viewing chatbot without auth
+    // if (!authLoading && !user) {
+    //   router.push("/signin")
+    // }
   }, [user, authLoading, router])
+
+  // Mark that user has visited the app (for redirect logic on landing page)
+  useEffect(() => {
+    if (user && !authLoading) {
+      sessionStorage.setItem("hasVisitedApp", "true")
+      // Update last chatbot activity timestamp
+      sessionStorage.setItem("lastChatbotActivityTime", Date.now().toString())
+    }
+  }, [user, authLoading])
+
+  // Update last activity time periodically while chatbot is open
+  useEffect(() => {
+    if (!user || authLoading) return
+    
+    const updateActivityTime = () => {
+      sessionStorage.setItem("lastChatbotActivityTime", Date.now().toString())
+    }
+    
+    // Update every 10 seconds while chatbot is active
+    const interval = setInterval(updateActivityTime, 10000)
+    
+    // Also update on user interaction
+    window.addEventListener("click", updateActivityTime)
+    window.addEventListener("keydown", updateActivityTime)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("click", updateActivityTime)
+      window.removeEventListener("keydown", updateActivityTime)
+    }
+  }, [user, authLoading])
 
   // Fetch has_paid / profile image; require backend profile country for signed-in (non-guest) users
   useEffect(() => {
@@ -285,6 +318,7 @@ export default function ChatbotPage() {
   const [inputValue, setInputValue] = useState("")
   const [placeholderText, setPlaceholderText] = useState("Design a Floor-plan for a 3BHK House")
   const [isFirstSubmit, setIsFirstSubmit] = useState<boolean>(true)
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false)
 
   // Helper function for demo script
   const addMessage = (msg: any) => setMessages(prev => [...prev, msg])
@@ -918,6 +952,12 @@ export default function ChatbotPage() {
     }
   }
 
+  const handleGoHome = () => {
+    // Set flag so landing page doesn't redirect us back to chatbot
+    sessionStorage.setItem("fromChatbot", "true")
+    router.push("/")
+  }
+
   const handleDeleteChat = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
     if (!user) return
@@ -969,9 +1009,7 @@ export default function ChatbotPage() {
   const sidebarItems = [
     { icon: Plus, label: "New Chat", action: createNewChat },
     { icon: History, label: "History", action: handleHistory },
-    { icon: Globe, label: "About", action: () => router.push("/about") },
-    { icon: DollarSign, label: "Pricing", action: () => router.push("/pricing") },
-    { icon: Shield, label: "Privacy", action: () => router.push("/privacy-policy") },
+    { icon: Globe, label: "Home", action: handleGoHome },
   ]
 
   if (authLoading) {
@@ -1554,6 +1592,7 @@ export default function ChatbotPage() {
                 disabled={isLoading}
               />
             </div>
+
             <motion.button
               type="button"
               data-onboarding="send"
@@ -1577,6 +1616,23 @@ export default function ChatbotPage() {
               )}
             </motion.button>
           </div>
+
+          {/* Disclaimer Text Below Input - Only show when docked */}
+          {hasStarted && (
+            <div className="flex items-center justify-center gap-2 mt-3 px-4">
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                Clairvyn can make mistakes
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDisclaimerModal(true)}
+                className="flex-shrink-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5"
+                title="AI Disclaimer"
+              >
+                <Info className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
         </main>
       </div>
@@ -1592,6 +1648,59 @@ export default function ChatbotPage() {
         onLogout={handleLogout}
         profileImageUrl={profileImageUrl}
       />
+
+      {/* AI Disclaimer Modal */}
+      <AnimatePresence>
+        {showDisclaimerModal && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDisclaimerModal(false)}
+            />
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-sm w-full p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <CircleHelp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0.5">AI Disclaimer</h3>
+                </div>
+                
+                <div className="space-y-3 mb-6 text-sm text-gray-700 dark:text-gray-300">
+                  <p>
+                    <strong>Please note:</strong> Clairvyn uses AI to generate floor plans. While powerful, AI is susceptible to mistakes.
+                  </p>
+                  <ul className="list-disc list-inside space-y-2">
+                    <li>Generated floor plans may contain errors or unrealistic layouts</li>
+                    <li>Dimensions and proportions may not always be accurate</li>
+                    <li>The AI may miss important architectural constraints</li>
+                    <li>Generated designs should <strong>never</strong> be used directly for construction</li>
+                    <li>Always have professional architects review and certify plans before use</li>
+                  </ul>
+                  <p className="pt-2">
+                    These outputs are conceptual aids only and should not replace professional architectural services.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowDisclaimerModal(false)}
+                  className="w-full bg-[#1e2bd6] hover:bg-[#1a24b8] text-white font-semibold py-2 rounded-lg transition-colors"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <style jsx>{`
         .house-loader {
