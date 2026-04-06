@@ -4,7 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Menu } from "lucide-react"
+import { Menu, Tag, Info, BookOpen, X } from "lucide-react"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -80,45 +81,91 @@ export function LandingHeader() {
                 </button>
                 <SheetContent
                   side="right"
-                  className="flex w-[min(100vw,320px)] flex-col border-l border-white/20 bg-white/95 p-0 backdrop-blur-xl"
+                  className="flex w-full max-w-[360px] flex-col border-l border-gray-100 bg-gradient-to-b from-white to-gray-50 p-0 backdrop-blur-xl sm:max-w-sm"
                 >
-                  <SheetHeader className="border-b border-gray-100 px-6 py-4 text-left">
-                    <SheetTitle className="text-lg font-bold text-[#0b1a3c]">Menu</SheetTitle>
+                  <SheetHeader className="border-b border-gray-100 px-6 py-5 text-left">
+                    <div className="flex items-center justify-between">
+                      <SheetTitle className="text-xl font-bold text-[#0b1a3c]">Menu</SheetTitle>
+                    </div>
                   </SheetHeader>
+                  
                   <nav
-                    className="flex flex-col gap-1 px-4 py-4 touch:gap-2 touch:px-5 touch:py-5"
+                    className="flex flex-col gap-0 px-4 py-3"
                     aria-label="Mobile primary"
                   >
-                    <Link
-                      href="/pricing"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-12 items-center rounded-xl px-4 text-base font-semibold text-gray-800 transition-colors hover:bg-[#1e2bd6]/8 hover:text-[#1e2bd6]"
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05, duration: 0.3 }}
+                      className="flex flex-col"
                     >
-                      Pricing
-                    </Link>
-                    <Link
-                      href="/about"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-12 items-center rounded-xl px-4 text-base font-semibold text-gray-800 transition-colors hover:bg-[#1e2bd6]/8 hover:text-[#1e2bd6]"
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
+                      <Link
+                        href="/pricing"
+                        onClick={() => setMenuOpen(false)}
+                        className="group flex min-h-14 items-center gap-4 rounded-xl px-4 py-3 text-base font-semibold text-gray-800 transition-all hover:bg-gradient-to-r hover:from-[#1e2bd6]/10 hover:to-[#1e2bd6]/5 hover:text-[#1e2bd6] active:scale-95"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#1e2bd6] to-[#1520b8] text-white shadow-md transition-all group-hover:shadow-lg group-hover:scale-110">
+                          <Tag className="h-5 w-5 fill-current" />
+                        </span>
+                        <span>Pricing</span>
+                      </Link>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1, duration: 0.3 }}
+                      className="flex flex-col"
                     >
-                      About
-                    </Link>
-                    <Link
-                      href="/blog"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-12 items-center rounded-xl px-4 text-base font-semibold text-gray-800 transition-colors hover:bg-[#1e2bd6]/8 hover:text-[#1e2bd6]"
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2" />
+                      <Link
+                        href="/about"
+                        onClick={() => setMenuOpen(false)}
+                        className="group flex min-h-14 items-center gap-4 rounded-xl px-4 py-3 text-base font-semibold text-gray-800 transition-all hover:bg-gradient-to-r hover:from-[#1e2bd6]/10 hover:to-[#1e2bd6]/5 hover:text-[#1e2bd6] active:scale-95"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#1e2bd6] to-[#1520b8] text-white shadow-md transition-all group-hover:shadow-lg group-hover:scale-110">
+                          <Info className="h-5 w-5" />
+                        </span>
+                        <span>About</span>
+                      </Link>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15, duration: 0.3 }}
+                      className="flex flex-col"
                     >
-                      Blog
-                    </Link>
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2" />
+                      <Link
+                        href="/blog"
+                        onClick={() => setMenuOpen(false)}
+                        className="group flex min-h-14 items-center gap-4 rounded-xl px-4 py-3 text-base font-semibold text-gray-800 transition-all hover:bg-gradient-to-r hover:from-[#1e2bd6]/10 hover:to-[#1e2bd6]/5 hover:text-[#1e2bd6] active:scale-95"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#1e2bd6] to-[#1520b8] text-white shadow-md transition-all group-hover:shadow-lg group-hover:scale-110">
+                          <BookOpen className="h-5 w-5 fill-current" />
+                        </span>
+                        <span>Blog</span>
+                      </Link>
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-3" />
+                    </motion.div>
                   </nav>
-                  <div className="mt-auto border-t border-gray-100 touch:p-5 p-4">
-                    <button
-                      type="button"
-                      onClick={goSignIn}
-                      className="flex h-12 w-full min-h-12 items-center justify-center rounded-full bg-[#1e2bd6] text-base font-semibold text-white shadow-md transition-shadow hover:shadow-lg touch:text-base"
+                  
+                  <div className="mt-auto border-t border-gray-100 px-4 py-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.3 }}
                     >
-                      Sign In
-                    </button>
+                      <button
+                        type="button"
+                        onClick={goSignIn}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1e2bd6] to-[#1a21c0] text-base font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:from-[#1e2bd6] hover:to-[#1620b0] active:scale-95"
+                      >
+                        Sign In
+                      </button>
+                    </motion.div>
                   </div>
                 </SheetContent>
               </Sheet>

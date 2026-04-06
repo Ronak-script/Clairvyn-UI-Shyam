@@ -255,19 +255,19 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
               {/* Success Message */}
               {success && (
                 <motion.div
-                  className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                  className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">{success}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">{success}</p>
                 </motion.div>
               )}
 
               {/* Profile Photo Section */}
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
-                  <Avatar className="w-24 h-24 border-3 border-gray-200 dark:border-gray-700 ring-2 ring-blue-100 dark:ring-blue-900/30">
+                  <Avatar className="w-24 h-24 border-3 border-gray-200 dark:border-gray-700 ring-2 ring-gray-200 dark:ring-gray-700">
                     {(formData.photoURL || profileImageUrl) && (
                       <AvatarImage
                         src={formData.photoURL || profileImageUrl || ""}
@@ -275,7 +275,7 @@ export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }:
                         referrerPolicy="no-referrer"
                       />
                     )}
-                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-500 text-white text-3xl font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-500 text-white text-3xl font-semibold">
                       {formData.displayName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>

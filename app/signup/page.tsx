@@ -64,6 +64,17 @@ export default function SignUpPage() {
       }
 
       await signUp(email, password)
+      
+      // Clear redirect flags on successful signup for clean state
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("fromChatbot")
+          sessionStorage.setItem("hasVisitedApp", "true")
+        } catch (e) {
+          console.warn("[Clairvyn] Error setting sessionStorage after signup", e)
+        }
+      }
+      
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")
@@ -82,6 +93,17 @@ export default function SignUpPage() {
         return
       }
       await signInWithGoogle()
+      
+      // Clear redirect flags on successful Google signup for clean state
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("fromChatbot")
+          sessionStorage.setItem("hasVisitedApp", "true")
+        } catch (e) {
+          console.warn("[Clairvyn] Error setting sessionStorage after Google signup", e)
+        }
+      }
+      
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")

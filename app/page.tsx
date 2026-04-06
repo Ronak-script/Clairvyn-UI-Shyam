@@ -9,6 +9,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { LandingHeader } from "@/components/LandingHeader"
+import LandingPageLoader from "@/components/LandingPageLoader"
 
 
 export default function HomePage() {
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [heroStack, setHeroStack] = useState([0, 1, 2] as number[])
   const [leavingId, setLeavingId] = useState<number | null>(null)
   const [heroStackStep, setHeroStackStep] = useState(22)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)")
@@ -25,6 +27,19 @@ export default function HomePage() {
     mq.addEventListener("change", apply)
     return () => mq.removeEventListener("change", apply)
   }, [])
+
+  // Add timeout for loading state to prevent infinite hang
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.warn("[Clairvyn] Loading state timeout - treating as not loading")
+        setLoadingTimeout(true)
+      }, 5000) // 5 second timeout
+      return () => clearTimeout(timer)
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [loading])
 
   // Prefetch chatbot so redirect feels instant
   useEffect(() => {
@@ -53,54 +68,59 @@ export default function HomePage() {
     if (loading) return
     if (!user) return
     
-    // Check if user has already interacted with the app
-    const hasVisitedApp = sessionStorage.getItem("hasVisitedApp")
-    const fromChatbot = sessionStorage.getItem("fromChatbot")
-    const lastChatbotActivityTime = sessionStorage.getItem("lastChatbotActivityTime")
+    try {
+      // Check if sessionStorage is available (may be disabled in private/incognito mode)
+      const testKey = "__test__"
+      sessionStorage.setItem(testKey, "test")
+      sessionStorage.removeItem(testKey)
+    } catch (e) {
+      // sessionStorage not available (private mode, etc.) - can't redirect safely
+      // Allow user to stay on landing page
+      console.warn("[Clairvyn] sessionStorage not available, skipping redirect logic")
+      return
+    }
     
-    // If coming from chatbot via Home button, allow landing page access
+    // Check if user explicitly navigated here from chatbot (via Home button)
+    const fromChatbot = sessionStorage.getItem("fromChatbot")
+    
     if (fromChatbot === "true") {
+      // User came from chatbot via Home button - allow landing page access
       sessionStorage.removeItem("fromChatbot")
       sessionStorage.setItem("hasVisitedApp", "true")
       return
     }
     
-    // If already visited app in this session, allow landing page access
+    // Check if user has already visited the app (navigated through pages)
+    const hasVisitedApp = sessionStorage.getItem("hasVisitedApp")
     if (hasVisitedApp === "true") {
+      // User has already visited app pages - allow landing page access
       return
     }
     
-    // Check if user came from another page (referrer indicates navigation from within app)
+    // Check if user came from another app page (referrer indicates internal navigation)
     const referrer = document.referrer
     const isInternalNavigation = referrer && (
       referrer.includes("/chatbot") || 
       referrer.includes("/signin") || 
       referrer.includes("/signup") ||
+      referrer.includes("/onboarding") ||
+      referrer.includes("/feedback") ||
       referrer.includes("/about") ||
       referrer.includes("/pricing") ||
-      referrer.includes("/privacy-policy")
+      referrer.includes("/blog") ||
+      referrer.includes("/privacy-policy") ||
+      referrer.includes("/terms-of-service") ||
+      referrer.includes("/consent-notice") ||
+      referrer.includes("/loading-preview")
     )
     
     if (isInternalNavigation) {
+      // User navigated from another internal page - allow landing page access
       sessionStorage.setItem("hasVisitedApp", "true")
       return
     }
     
-    // Check if chatbot was recently closed (within 5 seconds)
-    // This allows user to visit landing page if they just closed the chatbot tab
-    const now = Date.now()
-    if (lastChatbotActivityTime) {
-      const timeSinceChatbotActivity = now - parseInt(lastChatbotActivityTime)
-      const RECENT_ACTIVITY_TIMEOUT_MS = 5000 // 5 seconds
-      
-      // If chatbot was active recently, allow landing page access
-      if (timeSinceChatbotActivity < RECENT_ACTIVITY_TIMEOUT_MS) {
-        sessionStorage.setItem("hasVisitedApp", "true")
-        return
-      }
-    }
-    
-    // First time visit by signed-in user - redirect to chatbot
+    // First time authenticated visit with no internal navigation - redirect to chatbot
     sessionStorage.setItem("hasVisitedApp", "true")
     router.replace("/chatbot")
   }, [user, loading, router])
@@ -117,10 +137,11 @@ export default function HomePage() {
   }
 
   // Don't show landing page while checking auth — logged-in users go straight to chat
-  if (loading || user) {
+  // If loading state hangs for 5+ seconds, show landing page anyway (with timeout flag)
+  if ((loading && !loadingTimeout) || user) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-pulse text-gray-400 text-sm">Loading...</div>
+        <LandingPageLoader />
       </div>
     )
   }
@@ -147,7 +168,7 @@ export default function HomePage() {
               </div>
               <h1 className="font-extrabold tracking-tight text-[#0b1a3c] touch:text-[1.65rem] touch:leading-snug desktop:text-5xl desktop:leading-tight desktop:lg:text-6xl">
                 Design Architectural <br className="hidden desktop:block" />
-                Floor plans using <br className="hidden desktop:block" />
+                Floor Plans Using <br className="hidden desktop:block" />
                 Simple Prompts.
               </h1>
               <div className="mt-8 touch:mt-10">

@@ -47,12 +47,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestMode = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
     setIsGuest(guestMode)
 
+    // Add a timeout to ensure loading state is cleared even if onAuthStateChanged doesn't fire
+    const loadingTimeout = setTimeout(() => {
+      console.warn("[Clairvyn] Auth loading state timeout - forcing completion")
+      setLoading(false)
+    }, 8000) // 8 second timeout
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      clearTimeout(loadingTimeout)
       setUser(firebaseUser)
+      setLoading(false)
+    }, (error) => {
+      // Error callback - also clear loading on error
+      console.error("[Clairvyn] Auth state changed error:", error)
+      clearTimeout(loadingTimeout)
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      clearTimeout(loadingTimeout)
+      unsubscribe()
+    }
   }, [])
 
   const enterGuestMode = () => {
@@ -171,6 +186,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    // Clear all redirect flags to ensure clean state on next login
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("fromChatbot")
+        sessionStorage.removeItem("hasVisitedApp")
+        sessionStorage.removeItem("lastChatbotActivityTime")
+      } catch (e) {
+        console.warn("[Clairvyn] Error clearing sessionStorage during logout", e)
+      }
+    }
+    
     await signOut(auth)
     if (isGuest) {
       exitGuestMode()

@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/backendApi"
 import { getCountrySelectOptions } from "@/lib/countryOptions"
 import { fetchMeProfile, profileCountryMissing } from "@/lib/meProfile"
 import { ONBOARDING_SESSION_KEY } from "@/lib/onboardingConstants"
+import LandingPageLoader from "@/components/LandingPageLoader"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -133,7 +134,7 @@ export default function OnboardingProfilePage() {
   if (authLoading || !gateOk) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-pulse text-gray-400 text-sm">Loading…</div>
+        <LandingPageLoader />
       </div>
     )
   }

@@ -42,7 +42,7 @@ export function handleScriptedInput(
       addMessage({
         id: Date.now(),
         type: 'assistant',
-        content: "Hello! I'm your AI architectural assistant. I can help you design floor plans, create CAD models, and provide guidance on architectural projects. What would you like to work on today?",
+        content: "Hello! I'm your AI architectural assistant. This version supports residential designs up to 4 BHK with a curated collection of CAD assets including furniture and room types. I can help you design floor plans and create optimized layouts. What would you like to work on today?",
         timestamp: new Date().toISOString()
       });
       setTyping(false);

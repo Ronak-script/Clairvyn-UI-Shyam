@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import LandingPageLoader from "@/components/LandingPageLoader"
 import {
   Dialog,
   DialogContent,
@@ -196,16 +197,7 @@ export default function FeedbackPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <Card className="max-w-md shadow-2xl">
-          <CardContent className="p-8 text-center">
-            <motion.div
-              className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full mx-auto mb-4"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-            />
-            <p className="text-gray-600 font-medium">Analyzing your solution...</p>
-          </CardContent>
-        </Card>
+        <LandingPageLoader />
       </div>
     )
   }

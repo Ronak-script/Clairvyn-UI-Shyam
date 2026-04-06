@@ -308,7 +308,7 @@ export const simulateAIResponse = async (userMessage: string): Promise<string> =
   } else if (lowerMessage.includes('room') || lowerMessage.includes('bedroom') || lowerMessage.includes('kitchen')) {
     return "Excellent choice! Let's focus on that room. What are your priorities - functionality, aesthetics, or both? I can suggest optimal dimensions and layouts.";
   } else {
-    return "I'm excited to help you with your architectural design! Whether it's floor plans, CAD drawings, or space planning, I'm here to guide you. What would you like to work on today?";
+    return "I'm here to help you design residential floor plans! This version supports designs up to 4 BHK with a limited collection of CAD assets including furniture and room types. Please describe your floor plan needs, and I'll assist you with the design.";
   }
 };
 

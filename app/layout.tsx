@@ -26,9 +26,10 @@ export const metadata: Metadata = {
   icons: {
     icon: '/logo.png',
   },
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   description:
-    "Design Architectural Floorplans using Simple Prompts.",
-  keywords: "architecture, design, AI, challenges, education, floorplan, building design, Clairvyn",
+    "Design Architectural Floor Plans using Simple Prompts.",
+  keywords: "architecture, design, AI, challenges, education, floor plan, building design, Clairvyn",
   authors: [{ name: "Clairvyn Team" }],
   generator: 'v0.app'
 }

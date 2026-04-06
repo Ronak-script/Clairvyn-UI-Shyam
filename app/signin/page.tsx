@@ -53,6 +53,17 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password, rememberMe)
+      
+      // Clear redirect flags on successful login for clean state
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("fromChatbot")
+          sessionStorage.setItem("hasVisitedApp", "true")
+        } catch (e) {
+          console.warn("[Clairvyn] Error setting sessionStorage after signin", e)
+        }
+      }
+      
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")
@@ -67,6 +78,17 @@ export default function SignInPage() {
 
     try {
       await signInWithGoogle({ rememberMe })
+      
+      // Clear redirect flags on successful login for clean state
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("fromChatbot")
+          sessionStorage.setItem("hasVisitedApp", "true")
+        } catch (e) {
+          console.warn("[Clairvyn] Error setting sessionStorage after Google signin", e)
+        }
+      }
+      
       router.push("/chatbot")
     } catch (error: any) {
       setError(error.message || "An error occurred")

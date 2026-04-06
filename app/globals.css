@@ -7,6 +7,51 @@
     scroll-behavior: smooth;
     /* Force light mode everywhere except chatbot */
     color-scheme: light only;
+    /* Mobile touch optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent zoom on input focus on iOS */
+    font-size: 16px;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Touch target optimization */
+  button,
+  [role="button"],
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    /* Ensure minimum 44px touch target */
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Optimize for mobile viewport */
+  @media (max-width: 640px) {
+    body {
+      /* Prevent horizontal scroll */
+      overflow-x: hidden;
+    }
+
+    /* Reduce padding on mobile */
+    textarea {
+      padding: 12px;
+    }
+
+    /* Support notched devices (iPhone X, etc.) */
+    .chat-input-container {
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    header {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
   }
 
   /* Only allow dark mode on chatbot routes */
@@ -71,9 +116,9 @@ html, body {
   height: 100%;
   background-color: #fff;
 
-  /* Main page scroll — light purple (theme) */
+  /* Main page scroll — light gray (theme) */
   scrollbar-width: thin;
-  scrollbar-color: #c4b5fd #f3e8ff;
+  scrollbar-color: #d0d0d0 #f5f5f5;
 }
 
 /* WebKit scrollbar — document */
@@ -85,40 +130,84 @@ body::-webkit-scrollbar {
 
 html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track {
-  background: #f3e8ff;
+  background: #f5f5f5;
 }
 
 html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb {
-  background-color: #c4b5fd;
+  background-color: #d0d0d0;
   border-radius: 999px;
-  border: 2px solid #f3e8ff;
+  border: 2px solid #f5f5f5;
 }
 
 html::-webkit-scrollbar-thumb:hover,
 body::-webkit-scrollbar-thumb:hover {
-  background-color: #a78bfa;
+  background-color: #b0b0b0;
 }
 
 html.dark,
 html.dark body {
-  scrollbar-color: #7c3aed #2e1065;
+  scrollbar-color: #505050 #1a1a1a;
 }
 
 html.dark::-webkit-scrollbar-track,
 html.dark body::-webkit-scrollbar-track {
-  background: #2e1065;
+  background: #1a1a1a;
 }
 
 html.dark::-webkit-scrollbar-thumb,
 html.dark body::-webkit-scrollbar-thumb {
-  background-color: #7c3aed;
-  border-color: #2e1065;
+  background-color: #505050;
+  border-color: #1a1a1a;
 }
 
 html.dark::-webkit-scrollbar-thumb:hover,
 html.dark body::-webkit-scrollbar-thumb:hover {
-  background-color: #8b5cf6;
+  background-color: #606060;
+}
+
+/* Global button outline removal */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+a {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus,
+button:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible,
+input[type="button"]:focus,
+input[type="button"]:focus-visible,
+input[type="submit"]:focus,
+input[type="submit"]:focus-visible,
+a:focus,
+a:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Global input outline removal */
+input,
+textarea,
+select {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
 }
 
 /* Mobile-specific improvements */
@@ -287,10 +376,8 @@ html.dark body::-webkit-scrollbar-thumb:hover {
   body {
     @apply bg-white text-gray-900;
     background-image: 
-      linear-gradient(135deg, rgba(0, 136, 255, 0.02) 0%, rgba(0, 220, 255, 0.02) 100%),
-      linear-gradient(to right, rgba(0, 136, 255, 0.12) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0, 220, 255, 0.12) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
+      linear-gradient(135deg, rgba(0, 136, 255, 0.02) 0%, rgba(0, 220, 255, 0.02) 100%);
+    background-size: 100% 100%;
   }
 
   body {
@@ -333,13 +420,6 @@ html.dark body::-webkit-scrollbar-thumb:hover {
     background-color: rgba(0, 0, 0, 0.8) !important;
   }
 
-  .chat-bubble-user {
-    background-image:
-      linear-gradient(140deg, rgba(255, 255, 255, 0.95) 0%, rgba(238, 242, 255, 0.93) 45%, rgba(236, 253, 245, 0.9) 100%);
-    border: 1px solid rgba(165, 180, 252, 0.35);
-    box-shadow: 0 12px 32px rgba(79, 70, 229, 0.12);
-  }
-
 /* Chat Input Container - Smooth Animation */
 .chat-input-container {
   position: fixed;
@@ -368,7 +448,10 @@ html.dark body::-webkit-scrollbar-thumb:hover {
 /* Mobile adjustments */
 @media (max-width: 640px) {
   .chat-input-container {
-    width: 98vw;
+    width: 96vw;
+    left: 2vw;
+    transform: none;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
   
   .chat-input-container.start {
@@ -376,7 +459,7 @@ html.dark body::-webkit-scrollbar-thumb:hover {
   }
   
   .chat-input-container.dock {
-    bottom: 12px;
+    bottom: max(10px, env(safe-area-inset-bottom));
   }
 }
 
@@ -385,10 +468,10 @@ html.dark body::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.94) 0%, rgba(238, 242, 255, 0.9) 50%, rgba(240, 249, 255, 0.9) 100%);
-  border: 1px solid rgba(191, 219, 254, 0.65);
-  box-shadow: 0 16px 48px rgba(79, 70, 229, 0.18);
-  backdrop-filter: blur(10px);
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  backdrop-filter: none;
   border-radius: 14px;
   padding: 8px 10px 8px 14px;
 }
@@ -445,16 +528,23 @@ html.dark body::-webkit-scrollbar-thumb:hover {
   cursor: pointer;
   border-radius: 10px;
   color: #fff;
-  background-image: linear-gradient(135deg, #2563eb 0%, #4f46e5 45%, #7c3aed 100%);
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.35);
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
   transition: transform .12s ease, box-shadow .12s ease;
+}
+
+/* Dark mode send button */
+.dark .send-btn {
+  background: #5a5550;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: #F5E6D3;
 }
 
 /* Mobile adjustments for send button */
 @media (max-width: 640px) {
   .send-btn {
-    height: 32px;
-    min-width: 36px;
+    height: 40px;
+    min-width: 40px;
     padding: 0 10px;
     border-radius: 8px;
   }
@@ -462,7 +552,13 @@ html.dark body::-webkit-scrollbar-thumb:hover {
 
 .send-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(79, 70, 229, 0.45);
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.dark .send-btn:hover:not(:disabled) {
+  background: #6b6560;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .send-btn:disabled {
@@ -476,17 +572,12 @@ html.dark body::-webkit-scrollbar-thumb:hover {
 }
 
 .chat-bubble-assistant {
-  background-image:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 243, 255, 0.9) 50%, rgba(239, 246, 255, 0.88) 100%);
-  border: 1px solid rgba(196, 181, 253, 0.4);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
   transition: max-width 0.3s ease, width 0.3s ease, padding 0.2s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .chat-bubble-user:hover,
 .chat-bubble-assistant:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 36px rgba(79, 70, 229, 0.2);
 }
 
   @keyframes chat-loading-text-shimmer {
@@ -520,6 +611,103 @@ html.dark body::-webkit-scrollbar-thumb:hover {
     color: transparent;
     animation: chat-loading-text-shimmer 4.8s ease-in-out infinite;
   }
+
+  .dark .chat-loading-text {
+    background: linear-gradient(90deg, #666666, #999999, #666666);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* Dark mode enhanced styling */
+.dark {
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  --border-light: #2a2a2a;
+  --border-default: #333333;
+  --bg-subtle: #1a1a1a;
+  --bg-light: #1f1f1f;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #ffffff;
+}
+
+.dark p,
+.dark span,
+.dark div {
+  color: #e5e5e5;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-700 {
+  color: #b0b0b0 !important;
+}
+
+.dark .text-gray-500 {
+  color: #999999 !important;
+}
+
+.dark .text-gray-400 {
+  color: #808080 !important;
+}
+
+.dark .bg-white {
+  background-color: #1f1f1f !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #1a1a1a !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #262626 !important;
+}
+
+.dark .border-gray-200 {
+  border-color: #2a2a2a !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #333333 !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #262626 !important;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: #1a1a1a !important;
+}
+
+.dark button:not(.chat-bubble-user),
+.dark a {
+  transition: all 0.2s ease;
+}
+
+.dark button:hover:not(:disabled):not(.chat-bubble-user) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode sidebar */
+.dark .sidebar-background {
+  background-color: #0d0d0d;
+}
+
+.dark .sidebar-item {
+  color: #b0b0b0;
+  transition: all 0.2s ease;
+}
+
+.dark .sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
 }
 
 /* Default in-app scrollbars — light purple (match theme); use .scrollbar-sidebar for grey */
@@ -584,7 +772,8 @@ a,
 /* Enhanced focus states */
 button:focus-visible,
 a:focus-visible {
-  @apply outline-none ring-2 ring-teal-500 ring-offset-2;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Button hover effects */
@@ -718,135 +907,245 @@ a:focus-visible {
 }
 
 /* Chat / app dark mode (html.dark only applied while on /chatbot with toggle on) */
+/* Elegant dark theme with warm color palette */
+
+/* Dark mode chat bubbles - MUST come BEFORE light mode */
 .dark .chat-background {
-  background-color: #070611;
-  background-image:
-    radial-gradient(900px 560px at 55% 10%, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.0) 60%),
-    radial-gradient(800px 520px at 30% 55%, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0.0) 62%),
-    radial-gradient(980px 640px at 70% 70%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.0) 60%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
-  background-size: 100% 100%;
+  background-color: #1F1E1D !important;
+  background-image: none !important;
 }
 
 .dark .chat-bubble-user {
-  background-image:
-    linear-gradient(140deg, rgba(49, 46, 129, 0.62) 0%, rgba(76, 29, 149, 0.56) 55%, rgba(15, 23, 42, 0.62) 100%);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  box-shadow: 0 16px 36px rgba(6, 8, 25, 0.55);
+  background-color: #2D2C2B !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #F5E6D3 !important;
+  outline: none !important;
+}
+
+.dark .chat-bubble-user a {
+  color: #F5E6D3 !important;
+}
+
+.dark .chat-bubble-user a:hover {
+  color: #F5E6D3 !important;
 }
 
 .dark .chat-bubble-assistant {
-  color: #e5e7eb !important;
-  border: 1px solid rgba(148, 163, 184, 0.22) !important;
-  background-image:
-    linear-gradient(145deg, rgba(30, 41, 59, 0.76) 0%, rgba(30, 27, 75, 0.72) 54%, rgba(17, 24, 39, 0.78) 100%) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #F5E6D3 !important;
+  outline: none !important;
+}
+
+.dark .chat-bubble-assistant a {
+  color: #F5E6D3 !important;
+}
+
+.dark .chat-bubble-assistant a:hover {
+  color: #F5E6D3 !important;
+}
+
+/* Light mode chat bubbles - only apply when NOT in dark mode */
+.chat-bubble-user {
+  background-color: #f0f0f0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #1a1a1a !important;
+  outline: none !important;
+}
+
+.chat-bubble-user a {
+  color: #0066cc !important;
+}
+
+.chat-bubble-user a:hover {
+  color: #0052a3 !important;
+}
+
+.chat-bubble-assistant {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #1a1a1a !important;
+  outline: none !important;
+}
+
+.chat-bubble-assistant a {
+  color: #0066cc !important;
+}
+
+.chat-bubble-assistant a:hover {
+  color: #0052a3 !important;
 }
 
 .dark .chat-input {
-  background-image: linear-gradient(125deg, rgba(30, 41, 59, 0.82) 0%, rgba(49, 46, 129, 0.7) 48%, rgba(17, 24, 39, 0.82) 100%);
-  border: 1px solid rgba(129, 140, 248, 0.32);
-  box-shadow: 0 20px 62px rgba(4, 8, 28, 0.56);
-  backdrop-filter: blur(10px);
+  background-color: #2D2C2B;
+  border: 1px solid #373737;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .dark .chat-input-field {
-  color: #f9fafb;
+  background-color: transparent !important;
+  color: #F5E6D3 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  border: none !important;
 }
 
 .dark .chat-input-field:focus {
-  outline: none;
-  box-shadow: none;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
 }
 
 .dark .chat-input-field:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+.dark .chat-input-field::placeholder {
+  color: #B1ADA1 !important;
+}
+
+/* Light mode chat input */
+.chat-input {
+  background-color: white;
+  border: 1px solid #ddd;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.chat-input-field {
+  background-color: transparent;
+  color: #1a1a1a;
+}
+
+.chat-input-field:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: #999;
+}
+
+.chat-input-field:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
-.dark .chat-input-field::placeholder {
-  color: #6b7280;
+.chat-input-field::placeholder {
+  color: #999;
 }
 
+/* Loading animation - improved for dark mode */
 .dark .chat-loading-text {
-  background-image: linear-gradient(
-    105deg,
-    #5eead4 0%,
-    #99f6e4 18%,
-    #a5b4fc 40%,
-    #22d3ee 58%,
-    #c4b5fd 78%,
-    #5eead4 100%
-  );
+  background: linear-gradient(90deg, #B1ADA1, #C4A584, #B1ADA1);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Loading spinner styling for dark mode */
+.dark .spinner,
+.dark [class*="spinner"],
+.dark [class*="loading"] {
+  color: #B1ADA1;
+}
+
+.dark .lds-ring {
+  display: inline-block;
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.dark .lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: 3px;
+  border: 2px solid #B1ADA1;
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #B1ADA1 transparent transparent transparent;
 }
 
 .dark .scrollbar-main {
-  scrollbar-color: #7c3aed #1e1b4b;
+  scrollbar-color: #5a5550 #1F1E1D;
 }
 
 .dark .scrollbar-main::-webkit-scrollbar-track {
-  background: #1e1b4b;
+  background: #1F1E1D;
 }
 
 .dark .scrollbar-main::-webkit-scrollbar-thumb {
-  background-color: #7c3aed;
-  border-color: #1e1b4b;
+  background-color: #5a5550;
+  border-color: #1F1E1D;
 }
 
 .dark .scrollbar-main::-webkit-scrollbar-thumb:hover {
-  background-color: #8b5cf6;
+  background-color: #6b6560;
 }
 
 .dark .scrollbar-sidebar {
-  scrollbar-color: #6b7280 #1f2937;
+  scrollbar-color: #5a5550 #1F1E1D;
 }
 
 .dark .scrollbar-sidebar::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: #1F1E1D;
 }
 
 .dark .scrollbar-sidebar::-webkit-scrollbar-thumb {
-  background-color: #6b7280;
-  border-color: #1f2937;
+  background-color: #5a5550;
+  border-color: #1F1E1D;
 }
 
 .dark .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
+  background-color: #6b6560;
 }
 
 .dark .driver-popover.clairvyn-driver-popover {
-  background-color: rgb(30 41 59 / 0.98);
-  color: rgb(248 250 252);
+  background-color: #2D2C2B;
+  color: #F5E6D3;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-title,
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-description {
-  color: rgb(248 250 252);
+  color: #F5E6D3;
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-progress-text {
-  color: rgb(148 163 184);
+  color: #B1ADA1;
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-close-btn {
-  color: rgb(148 163 184);
+  color: #B1ADA1;
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-close-btn:hover,
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-close-btn:focus {
-  color: rgb(248 250 252);
+  color: #F5E6D3;
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-footer button {
   text-shadow: none;
-  background-color: rgb(51 65 85);
-  color: rgb(248 250 252);
-  border-color: rgb(71 85 105);
+  background-color: #3d3c3a;
+  color: #F5E6D3;
+  border-color: #5a5550;
 }
 
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-footer button:hover,
 .dark .driver-popover.clairvyn-driver-popover .driver-popover-footer button:focus {
-  background-color: rgb(71 85 105);
+  background-color: #4d4c4a;
 }
 
 /* ===========================
@@ -1400,4 +1699,318 @@ a:focus-visible {
     opacity: 1;
     r: 5;
   }
+}
+
+/* Mobile optimizations for dark mode */
+@media (max-width: 768px) {
+  .dark .chat-background {
+    background-color: #1a1a1a;
+  }
+
+  .dark .chat-bubble-user {
+    background-color: #1e88e5;
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .dark .chat-bubble-assistant {
+    background-color: #2a2a2a;
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .dark .chat-input {
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .dark .chat-input-field {
+    font-size: 14px;
+  }
+
+  .dark .chat-loading-text {
+    font-size: 13px;
+  }
+
+  /* Better touch targets on mobile */
+  .dark button:not(.chat-bubble-user) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Dark mode theme variables */
+:root {
+  --dark-bg-primary: #1a1a1a;
+  --dark-bg-secondary: #2a2a2a;
+  --dark-user-message: #1e88e5;
+  --dark-text-primary: #e8e8e8;
+  --dark-text-secondary: #999999;
+  --dark-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Dialog and modal dark mode styling */
+.dark [role="dialog"],
+.dark [role="alertdialog"] {
+  background-color: #343541;
+  color: #ececf1;
+  border: 1px solid #565970;
+}
+
+/* ========================
+   DARK MODE UI ELEMENTS
+   ======================== */
+
+/* Dialogs and Modals */
+.dark [role="dialog"],
+.dark [role="alertdialog"],
+.dark .modal,
+.dark .dialog {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: 1px solid #3d3c3a;
+}
+
+.dark dialog,
+.dark [class*="modal"],
+.dark [class*="dialog"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+}
+
+/* Sidebar */
+.dark [class*="sidebar"],
+.dark [class*="drawer"],
+.dark aside {
+  background-color: #1F1E1D;
+  color: #F5E6D3;
+  border-right: 1px solid #2D2C2B;
+}
+
+/* Header and Navigation */
+.dark header,
+.dark nav,
+.dark [role="navigation"] {
+  background-color: #1F1E1D;
+  color: #F5E6D3;
+  border-bottom: 1px solid #2D2C2B;
+}
+
+/* Header buttons - no backgrounds in dark mode */
+.dark header button,
+.dark header [role="button"],
+.dark header button * {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.dark header button:hover,
+.dark header [role="button"]:hover {
+  background-color: transparent !important;
+}
+
+.dark header button:focus,
+.dark header button:focus-visible,
+.dark header [role="button"]:focus,
+.dark header [role="button"]:focus-visible {
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.dark .card,
+.dark [class*="card"],
+.dark [class*="surface"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: none;
+}
+
+/* Buttons - remove all colors and outlines */
+.dark button,
+.dark [role="button"] {
+  color: #F5E6D3 !important;
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+.dark button:focus,
+.dark button:focus-visible,
+.dark [role="button"]:focus,
+.dark [role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.dark button:hover,
+.dark [role="button"]:hover {
+  background-color: transparent !important;
+  color: #F5E6D3 !important;
+}
+
+/* Input Fields */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #2D2C2B !important;
+  color: #F5E6D3 !important;
+  border: 1px solid #373737 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #B1ADA1 !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  outline: none !important;
+  border-color: #373737 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+.dark input:focus-visible,
+.dark textarea:focus-visible,
+.dark select:focus-visible {
+  outline: none !important;
+  border-color: #373737 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+}
+
+/* Links */
+.dark a {
+  color: #F5E6D3;
+  outline: none;
+}
+
+.dark a:hover {
+  color: #F5E6D3;
+}
+
+/* Popover and Tooltip */
+.dark [role="tooltip"],
+.dark .tooltip,
+.dark [class*="popover"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: 1px solid #3d3c3a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Alerts and Notifications */
+.dark [role="alert"],
+.dark .alert,
+.dark .notification,
+.dark [class*="notice"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: 1px solid #3d3c3a;
+}
+
+/* Offline/Status banners */
+.dark [class*="banner"],
+.dark [class*="offline"],
+.dark [class*="status"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: 1px solid #3d3c3a;
+}
+
+/* Dividers */
+.dark hr,
+.dark [class*="divider"] {
+  border-color: #3d3c3a;
+}
+
+/* Dropdown menus */
+.dark [class*="dropdown"],
+.dark [class*="menu"],
+.dark [role="menu"],
+.dark [role="listbox"] {
+  background-color: #2D2C2B;
+  color: #F5E6D3;
+  border: 1px solid #3d3c3a;
+}
+
+.dark [class*="dropdown"] [role="menuitem"],
+.dark [class*="dropdown"] [role="option"],
+.dark [class*="menu"] [role="menuitem"],
+.dark [class*="menu"] [role="option"] {
+  color: #F5E6D3;
+  outline: none;
+}
+
+.dark [class*="dropdown"] [role="menuitem"]:hover,
+.dark [class*="dropdown"] [role="option"]:hover,
+.dark [class*="menu"] [role="menuitem"]:hover,
+.dark [class*="menu"] [role="option"]:hover {
+  background-color: #3d3c3a;
+  color: #F5E6D3;
+}
+
+/* Tables */
+.dark table,
+.dark [role="table"] {
+  background-color: #1F1E1D;
+  color: #F5E6D3;
+}
+
+.dark th,
+.dark [role="columnheader"] {
+  background-color: #2a2a2a;
+  color: #d0d0d0;
+  border-color: #404040;
+}
+
+.dark td,
+.dark [role="cell"] {
+  border-color: #404040;
+}
+
+.dark tr:hover {
+  background-color: #2a2a2a;
+}
+
+/* Tabs */
+.dark [role="tablist"],
+.dark [role="tab"],
+.dark [role="tabpanel"] {
+  color: #d0d0d0;
+}
+
+.dark [role="tab"]:hover {
+  background-color: #404040;
+}
+
+.dark [role="tab"][aria-selected="true"] {
+  color: #ffffff;
+  border-color: #d0d0d0;
+}
+
+/* All text should be light gray by default */
+.dark {
+  color: #d0d0d0;
+}
+
+.dark strong,
+.dark b {
+  color: #ffffff;
 }

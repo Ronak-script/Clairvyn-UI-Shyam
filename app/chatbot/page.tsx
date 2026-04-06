@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { handleScriptedInput } from "@/lib/demoScript"
-import TypingIndicator from "@/components/TypingIndicator"
+import LandingPageLoader from "@/components/LandingPageLoader"
 import {
   Menu,
   X,
@@ -15,14 +15,13 @@ import {
   LogIn,
   History,
   Plus,
-  Loader2,
   Trash2,
   Download,
   FileDown,
   CircleHelp,
   ThumbsUp,
   ThumbsDown,
-  Globe,
+  Home,
   DollarSign,
   Shield,
   Info,
@@ -61,7 +60,7 @@ const ASSISTANT_STATUS_PHASES: readonly (readonly string[])[] = [
     "Defining room relationships",
   ],
   [
-    "Generating initial floorplan structure",
+    "Generating initial floor plan structure",
     "Optimizing room placements for flow",
     "Aligning walls and dimensions",
     "Ensuring structural feasibility",
@@ -897,6 +896,18 @@ export default function ChatbotPage() {
 
   const handleLogout = async () => {
     console.log("[Clairvyn] handleLogout");
+    
+    // Clear redirect flags before logout to ensure clean state
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("fromChatbot")
+        sessionStorage.removeItem("hasVisitedApp")
+        sessionStorage.removeItem("lastChatbotActivityTime")
+      }
+    } catch (e) {
+      console.warn("[Clairvyn] Error clearing sessionStorage in handleLogout", e)
+    }
+    
     // Notify backend for auditing (optional; don't block sign-out if it fails)
     try {
       const idToken = await getIdToken()
@@ -953,8 +964,16 @@ export default function ChatbotPage() {
   }
 
   const handleGoHome = () => {
-    // Set flag so landing page doesn't redirect us back to chatbot
-    sessionStorage.setItem("fromChatbot", "true")
+    try {
+      // Set flag so landing page doesn't redirect us back to chatbot
+      sessionStorage.setItem("fromChatbot", "true")
+      // Clear the hasVisitedApp flag so landing page logic works correctly
+      sessionStorage.removeItem("hasVisitedApp")
+      sessionStorage.removeItem("lastChatbotActivityTime")
+    } catch (e) {
+      // sessionStorage not available - still navigate home
+      console.warn("[Clairvyn] sessionStorage not available in handleGoHome")
+    }
     router.push("/")
   }
 
@@ -1009,13 +1028,13 @@ export default function ChatbotPage() {
   const sidebarItems = [
     { icon: Plus, label: "New Chat", action: createNewChat },
     { icon: History, label: "History", action: handleHistory },
-    { icon: Globe, label: "Home", action: handleGoHome },
+    { icon: Home, label: "Home", action: handleGoHome },
   ]
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1e2bd6]" />
+        <LandingPageLoader />
       </div>
     )
   }
@@ -1071,7 +1090,7 @@ export default function ChatbotPage() {
 
             {/* Sidebar */}
             <motion.div
-              className="fixed left-0 top-0 z-50 flex h-full min-h-0 w-80 max-w-[85vw] flex-col bg-gray-100/95 dark:bg-gray-900 shadow-2xl"
+              className="fixed left-0 top-0 z-50 flex h-full min-h-0 w-80 max-w-[85vw] flex-col bg-gray-100/95 dark:bg-[#1F1E1D] shadow-2xl"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
@@ -1087,7 +1106,7 @@ export default function ChatbotPage() {
                     className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity rounded-lg px-2 py-1.5 group"
                     data-onboarding="sidebar-profile"
                   >
-                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
+                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm group-hover:ring-2 group-hover:ring-gray-500 transition-all">
                       {profileImageUrl ? (
                         <AvatarImage
                           src={profileImageUrl}
@@ -1096,7 +1115,7 @@ export default function ChatbotPage() {
                           onError={() => setProfileImageUrl(null)}
                         />
                       ) : null}
-                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-500 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-500 text-white">
                         <User className="w-5 h-5" />
                       </AvatarFallback>
                     </Avatar>
@@ -1116,7 +1135,7 @@ export default function ChatbotPage() {
                     whileTap={{ scale: 0.95 }}
                     aria-label="Close sidebar"
                   >
-                    <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    <X className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
                   </motion.button>
                 </div>
 
@@ -1168,7 +1187,9 @@ export default function ChatbotPage() {
                       </p>
                     ) : historyLoading ? (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#1e2bd6]" />
+                        <div className="w-5 h-5">
+                          <LandingPageLoader />
+                        </div>
                       </div>
                     ) : chatSessions.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1241,7 +1262,7 @@ export default function ChatbotPage() {
                     <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Dark mode
                     <div
-                      className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-teal-600" : "bg-gray-300"}`}
+                      className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-gray-500" : "bg-gray-300"}`}
                     >
                       <div
                         className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`}
@@ -1276,21 +1297,21 @@ export default function ChatbotPage() {
       <div className="relative z-10 flex min-h-screen">
         <main className="flex-1 flex flex-col min-h-screen">
           {/* Top bar (matches screenshot: hamburger on mobile, title center, search right) */}
-          <header className="relative bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="h-16 flex items-center px-4 sm:px-6">
+          <header className="relative bg-white/50 dark:bg-[#1F1E1D] border-b border-gray-200 dark:border-[#2D2C2B] backdrop-blur-sm">
+            <div className="h-16 flex items-center px-3 sm:px-6 gap-2">
               <motion.button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-2.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-transparent transition-colors outline-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Open sidebar"
               >
-                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Menu className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
               </motion.button>
 
-              <div className="flex-1 flex items-center justify-center pointer-events-none">
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
+              <div className="flex-1 flex items-center justify-center pointer-events-none min-w-0">
+                <div className="text-center truncate">
+                  <div className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
                     Clairvyn 1.0
                   </div>
                 </div>
@@ -1298,12 +1319,12 @@ export default function ChatbotPage() {
 
               <motion.button
                 onClick={() => setIsProfileModalOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-2.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-transparent transition-colors outline-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Open profile settings"
               >
-                <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <User className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
               </motion.button>
             </div>
           </header>
@@ -1312,13 +1333,13 @@ export default function ChatbotPage() {
         <AnimatePresence>
           {messages.length === 0 && !hasStarted && (
             <motion.div
-              className="text-center py-8 sm:py-12 px-4 flex-1 flex items-center justify-center"
+              className="text-center py-6 sm:py-12 px-3 sm:px-4 flex-1 flex items-center justify-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="mb-2 px-4 text-2xl font-bold text-charcoal sm:text-3xl min-[769px]:text-4xl dark:text-white">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-charcoal dark:text-white">
                 Let's Build Something Together!
               </h2>
             </motion.div>
@@ -1326,8 +1347,8 @@ export default function ChatbotPage() {
         </AnimatePresence>
 
         {/* Chat Messages */}
-        <div className="scrollbar-main flex-1 overflow-y-auto px-2 sm:px-4 pt-6 pb-32">
-          <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
+        <div className="scrollbar-main flex-1 overflow-y-auto px-2 sm:px-4 pt-4 sm:pt-6 pb-24 sm:pb-32">
+          <div className="max-w-5xl mx-auto space-y-2 sm:space-y-4">
             {messages.map((message, index) => (
               <motion.div
                 key={index}
@@ -1337,12 +1358,12 @@ export default function ChatbotPage() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-5 rounded-2xl shadow-lg ${message.role === 'user'
+                  className={`max-w-[90%] sm:max-w-[75%] md:max-w-[70%] p-2.5 sm:p-4 rounded-2xl ${message.role === 'user'
                     ? 'text-gray-800 dark:text-gray-50 w-fit chat-bubble-user'
                     : 'text-gray-800 dark:text-gray-100 min-w-[200px] sm:min-w-[280px] chat-bubble-assistant'
                     }`}
                 >
-                  <p className="text-sm sm:text-base leading-relaxed">{message.content}</p>
+                  <p className="text-xs sm:text-sm leading-relaxed">{message.content}</p>
                   {/* Support for image/extra data and description (demo script + backend responses) */}
                   {(message as any).image || (message as any).image_url || (message as any).extra_data?.png_url || (message as any).extra_data?.dxf_url || (message as any).extra_data?.document_id ? (
                     <div className="mt-3 space-y-2">
@@ -1364,7 +1385,7 @@ export default function ChatbotPage() {
                             type="button"
                             whileHover={{ scale: 1.03, y: -1 }}
                             whileTap={{ scale: 0.97 }}
-                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500/10 to-blue-500/10 dark:from-indigo-500/20 dark:to-blue-500/20 border border-indigo-200/70 dark:border-indigo-500/30 px-4 py-2.5 text-sm font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-400/40 transition-all"
+                            className="inline-flex items-center gap-2 rounded-xl bg-gray-500/10 dark:bg-gray-500/20 border border-gray-300/70 dark:border-gray-500/30 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-400/40 transition-all"
                             onClick={() => downloadPng((message as any).extra_data?.document_id || "floorplan")}
                           >
                             <Download className="w-4 h-4" />
@@ -1374,7 +1395,7 @@ export default function ChatbotPage() {
                             type="button"
                             whileHover={{ scale: 1.03, y: -1 }}
                             whileTap={{ scale: 0.97 }}
-                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 dark:from-violet-500/20 dark:to-purple-500/20 border border-violet-200/70 dark:border-violet-500/30 px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-violet-300 dark:hover:border-violet-400/40 transition-all"
+                            className="inline-flex items-center gap-2 rounded-xl bg-gray-500/10 dark:bg-gray-500/20 border border-gray-300/70 dark:border-gray-500/30 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-400/40 transition-all"
                             onClick={() => downloadDxf((message as any).extra_data?.document_id || (message as any).extra_data?.dxf_url?.split("/").pop()?.replace(".dxf", "") || "floorplan")}
                           >
                             <FileDown className="w-4 h-4" />
@@ -1396,8 +1417,8 @@ export default function ChatbotPage() {
                     const feedbackState = feedbackByMessage[feedbackKey] ?? {}
                     const isSubmitting = !!feedbackSubmittingByMessage[feedbackKey]
                     const optionClass =
-                      "text-xs sm:text-sm px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500"
-                    const selectedClass = "bg-indigo-600 text-white border-indigo-600"
+                      "text-xs sm:text-sm px-3 py-2 sm:py-1.5 rounded-full border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 active:scale-95 transition-transform"
+                    const selectedClass = "bg-gray-600 text-white border-gray-600"
 
                     const alreadySubmittedFromBackend = Boolean((message as any)?.feedback_submitted)
                     if (feedbackState.submitted || alreadySubmittedFromBackend) {
@@ -1485,7 +1506,7 @@ export default function ChatbotPage() {
                               !feedbackState.category ||
                               (feedbackState.feedbackType === "negative" && !feedbackState.severity)
                             }
-                            className="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-gray-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isSubmitting ? "Submitting..." : "Submit feedback"}
                           </button>
@@ -1504,24 +1525,7 @@ export default function ChatbotPage() {
               </motion.div>
             ))}
 
-            {/* Typing indicator (animated in/out) */}
-            <AnimatePresence>
-              {typing && (
-                <motion.div
-                  key="typing-indicator"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex justify-start"
-                >
-                  <div className="chat-bubble-assistant text-gray-800 dark:text-gray-200 p-3 sm:p-4 rounded-2xl shadow-lg">
-                    <p className="text-sm sm:text-base leading-relaxed chat-loading-text">Designing...</p>
-                    <TypingIndicator />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+
 
             {/* Loading indicator */}
             {isLoading && (
@@ -1531,7 +1535,7 @@ export default function ChatbotPage() {
                 transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
                 className="flex justify-start"
               >
-                <div className="chat-bubble-assistant text-gray-700 dark:text-gray-300 p-3 sm:p-4 rounded-2xl shadow-md">
+                <div className="chat-bubble-assistant text-gray-700 dark:text-gray-300 p-3 sm:p-4 rounded-2xl">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Animated house icon */}
                     <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 house-loader">
@@ -1544,7 +1548,7 @@ export default function ChatbotPage() {
                         <polyline 
                           points="32,12 52,28 52,54 12,54 12,28 32,12" 
                           fill="none"
-                          stroke="#1e2bd6"
+                          stroke="#B1ADA1"
                           strokeWidth="2.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1561,7 +1565,7 @@ export default function ChatbotPage() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 8 }}
                         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                        className="text-xs sm:text-sm font-medium text-[#1e2bd6] dark:text-indigo-400 min-w-0 flex-1"
+                        className="text-xs sm:text-sm font-medium text-gray-600 dark:text-[#B1ADA1] min-w-0 flex-1"
                       >
                         {assistantStatusLine}
                       </motion.span>
@@ -1590,6 +1594,8 @@ export default function ChatbotPage() {
                 placeholder={placeholderText}
                 className="chat-input-field w-full min-w-0"
                 disabled={isLoading}
+                autoComplete="off"
+                spellCheck="true"
               />
             </div>
 
@@ -1605,7 +1611,9 @@ export default function ChatbotPage() {
               onHoverEnd={() => setIsPencilHovered(false)}
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <div className="w-5 h-5">
+                  <LandingPageLoader />
+                </div>
               ) : (
                 <motion.div
                   animate={isPencilHovered ? { rotate: [0, -10, 10, -5, 0] } : {}}
