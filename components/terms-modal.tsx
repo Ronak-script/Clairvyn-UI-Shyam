@@ -4,6 +4,8 @@ export default function TermsModal() {
   return (
     <Link
       href="/terms-of-service"
+      target="_blank"
+      rel="noopener noreferrer"
       className="text-gray-600 transition-colors font-medium hover:text-[#1e2bd6] focus:outline-none"
     >
       Terms of Service

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -15,18 +15,26 @@ export type WaitlistSignupProps = {
   className?: string
   title?: string
   description?: string
+  userEmail?: string
 }
 
 export function WaitlistSignup({
   className,
   title = "Join the waitlist",
   description,
+  userEmail,
 }: WaitlistSignupProps) {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [alreadyRegistered, setAlreadyRegistered] = useState(false)
+
+  useEffect(() => {
+    if (userEmail) {
+      setEmail(userEmail)
+    }
+  }, [userEmail])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,19 +76,21 @@ export function WaitlistSignup({
       {description ? <p className={cn("mt-1 text-sm", "text-muted-foreground")}>{description}</p> : null}
 
       <form onSubmit={handleSubmit} className={cn(title || description ? "mt-4" : "", "space-y-3")}>
-        <div className="space-y-2">
-          <Label htmlFor="waitlist-email">Email</Label>
-          <Input
-            id="waitlist-email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading || success}
-          />
-        </div>
+        {!userEmail && (
+          <div className="space-y-2">
+            <Label htmlFor="waitlist-email">Email</Label>
+            <Input
+              id="waitlist-email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading || success}
+            />
+          </div>
+        )}
         {error ? <p className={cn("text-sm", "text-destructive")}>{error}</p> : null}
         {success ? (
           <p className={cn("text-sm", "text-emerald-600")}>You&apos;re on the list. We&apos;ll be in touch.</p>

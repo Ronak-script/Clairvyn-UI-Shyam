@@ -22,6 +22,9 @@ import {
   CircleHelp,
   ThumbsUp,
   ThumbsDown,
+  Globe,
+  DollarSign,
+  Shield,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { useAuth } from "@/contexts/AuthContext"
@@ -46,6 +49,7 @@ import { profileCountryMissing } from "@/lib/meProfile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
 import { WaitlistModal } from "@/components/WaitlistModal"
+import { UserProfileModal } from "@/components/UserProfileModal"
 
 /** Shown while waiting for an assistant turn; phases follow elapsed time; line changes every 20–30s. */
 const ASSISTANT_STATUS_PHASES: readonly (readonly string[])[] = [
@@ -200,6 +204,7 @@ export default function ChatbotPage() {
   const router = useRouter()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // used for mobile drawer
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false) // Profile modal state
 
   const { startTutorial } = useClairvynOnboarding({
     authLoading,
@@ -964,6 +969,9 @@ export default function ChatbotPage() {
   const sidebarItems = [
     { icon: Plus, label: "New Chat", action: createNewChat },
     { icon: History, label: "History", action: handleHistory },
+    { icon: Globe, label: "About", action: () => router.push("/about") },
+    { icon: DollarSign, label: "Pricing", action: () => router.push("/pricing") },
+    { icon: Shield, label: "Privacy", action: () => router.push("/privacy-policy") },
   ]
 
   if (authLoading) {
@@ -1033,8 +1041,15 @@ export default function ChatbotPage() {
             >
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 sm:p-5">
                 <div className="flex shrink-0 items-center justify-between">
-                  <div className="flex items-center gap-3" data-onboarding="sidebar-profile">
-                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm">
+                  <button
+                    onClick={() => {
+                      setIsProfileModalOpen(true)
+                      setIsSidebarOpen(false)
+                    }}
+                    className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity rounded-lg px-2 py-1.5 group"
+                    data-onboarding="sidebar-profile"
+                  >
+                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm group-hover:ring-2 group-hover:ring-blue-500 transition-all">
                       {profileImageUrl ? (
                         <AvatarImage
                           src={profileImageUrl}
@@ -1043,7 +1058,7 @@ export default function ChatbotPage() {
                           onError={() => setProfileImageUrl(null)}
                         />
                       ) : null}
-                      <AvatarFallback className="bg-gradient-to-br from-teal-600 to-green-500 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-500 text-white">
                         <User className="w-5 h-5" />
                       </AvatarFallback>
                     </Avatar>
@@ -1055,7 +1070,7 @@ export default function ChatbotPage() {
                         {user ? "Signed in" : "Guest Mode"}
                       </p>
                     </div>
-                  </div>
+                  </button>
                   <motion.button
                     onClick={() => setIsSidebarOpen(false)}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -1244,11 +1259,11 @@ export default function ChatbotPage() {
               </div>
 
               <motion.button
-                onClick={handleLogout}
+                onClick={() => setIsProfileModalOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                aria-label="Profile"
+                aria-label="Open profile settings"
               >
                 <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </motion.button>
@@ -1569,6 +1584,13 @@ export default function ChatbotPage() {
       <WaitlistModal
         open={waitlistOpen}
         onOpenChange={setWaitlistOpen}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={handleLogout}
+        profileImageUrl={profileImageUrl}
       />
 
       <style jsx>{`

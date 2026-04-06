@@ -95,20 +95,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await applyAuthPersistence(options?.rememberMe ?? true)
     const provider = new GoogleAuthProvider()
     
+    // Request additional profile scopes
+    provider.addScope('profile')
+    provider.addScope('email')
+    provider.setCustomParameters({
+      prompt: 'consent'
+    })
+    
     try {
       if (auth.currentUser && !auth.currentUser.isAnonymous) {
         // Already signed in with another method → link Google to existing account
-        await (auth.currentUser as any).linkWithPopup(provider)
+        const result = await (auth.currentUser as any).linkWithPopup(provider)
+        // Update profile with Google data
+        await updateUserProfileFromGoogle(result.user)
         console.log("Google provider linked to existing account")
       } else {
         // First time → just sign in
-        await signInWithPopup(auth, provider)
+        const result = await signInWithPopup(auth, provider)
+        // Update profile with Google data (name and photo URL)
+        await updateUserProfileFromGoogle(result.user)
         console.log("Signed in with Google")
       }
     } catch (error: any) {
       if (error.code === 'auth/credential-already-in-use') {
         // Google email already linked to different account - sign in instead
-        await signInWithPopup(auth, provider)
+        const result = await signInWithPopup(auth, provider)
+        await updateUserProfileFromGoogle(result.user)
         console.log("Signed in with Google (different account)")
       } else {
         throw error
@@ -116,6 +128,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     await migrateGuestChats()
+  }
+
+  const updateUserProfileFromGoogle = async (firebaseUser: FirebaseUser) => {
+    try {
+      // Extract name and profile picture from Google ID token claims
+      const idTokenResult = await firebaseUser.getIdTokenResult()
+      const displayName = firebaseUser.displayName || idTokenResult.claims.name || firebaseUser.email?.split('@')[0] || 'User'
+      const photoURL = firebaseUser.photoURL || idTokenResult.claims.picture || undefined
+
+      // Update the user's profile in Firebase Auth if not already set
+      if (!firebaseUser.displayName || !firebaseUser.photoURL) {
+        const { updateProfile } = await import('firebase/auth')
+        const profileUpdate: any = {}
+        
+        if (!firebaseUser.displayName && displayName) {
+          profileUpdate.displayName = displayName
+        }
+        
+        if (!firebaseUser.photoURL && photoURL) {
+          profileUpdate.photoURL = photoURL
+        }
+        
+        if (Object.keys(profileUpdate).length > 0) {
+          await updateProfile(firebaseUser, profileUpdate)
+        }
+      }
+      
+      console.log("User profile updated with Google data:", { displayName, photoURL })
+    } catch (error) {
+      console.error("Error updating user profile from Google:", error)
+      // Don't throw - profile update failure shouldn't block login
+    }
   }
 
   const signInWithGithub = async (options?: { rememberMe?: boolean }) => {

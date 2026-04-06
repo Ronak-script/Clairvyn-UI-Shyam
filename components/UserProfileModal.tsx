@@ -1,0 +1,366 @@
+"use client"
+
+import React, { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { X, Camera, LogOut } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getBackendUrl } from "@/lib/backendApi"
+
+interface UserProfileModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onLogout: () => void
+  profileImageUrl: string | null
+}
+
+interface UserProfile {
+  displayName: string
+  photoURL: string | null
+  email?: string
+}
+
+export function UserProfileModal({ isOpen, onClose, onLogout, profileImageUrl }: UserProfileModalProps) {
+  const { user, getIdToken } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [formData, setFormData] = useState<UserProfile>({
+    displayName: user?.displayName || "",
+    photoURL: user?.photoURL || profileImageUrl,
+    email: user?.email || "",
+  })
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        displayName: user.displayName || prev.displayName,
+        photoURL: user.photoURL || profileImageUrl || prev.photoURL,
+        email: user.email || prev.email,
+      }))
+    }
+  }, [user, profileImageUrl])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB")
+      setTimeout(() => setError(""), 3000)
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file (JPG, PNG, GIF)")
+      setTimeout(() => setError(""), 3000)
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const base64String = reader.result as string
+          const token = await getIdToken()
+          
+          if (!token) {
+            setError("Authentication failed. Please sign in again.")
+            setIsLoading(false)
+            return
+          }
+
+          // Upload to backend
+          const response = await fetch(getBackendUrl("/api/me/profile-photo"), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              photoData: base64String,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error("Failed to upload photo")
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            photoURL: base64String,
+          }))
+
+          setSuccess("Photo updated!")
+          setTimeout(() => setSuccess(""), 2000)
+        } catch (err) {
+          setError("Failed to upload photo. Please try again.")
+          setTimeout(() => setError(""), 3000)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+      reader.readAsDataURL(file)
+    } catch (err) {
+      setError("Error reading file")
+      setTimeout(() => setError(""), 3000)
+      setIsLoading(false)
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!formData.displayName.trim()) {
+      setError("Name is required")
+      setTimeout(() => setError(""), 3000)
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const token = await getIdToken()
+      if (!token) {
+        setError("Authentication failed. Please sign in again.")
+        setIsLoading(false)
+        return
+      }
+
+      // Update backend
+      const response = await fetch(getBackendUrl("/api/me/profile"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: formData.displayName,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile")
+      }
+
+      // Update Firebase displayName
+      if (user && formData.displayName !== user.displayName) {
+        const { updateProfile } = await import("firebase/auth")
+        await updateProfile(user, { displayName: formData.displayName })
+      }
+
+      setSuccess("Profile saved!")
+      setTimeout(() => {
+        setSuccess("")
+        onClose()
+      }, 1500)
+    } catch (err) {
+      setError("Failed to save profile")
+      setTimeout(() => setError(""), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLogoutClick = async () => {
+    setIsLoading(true)
+    try {
+      await onLogout()
+      onClose()
+    } catch (err) {
+      setError("Failed to sign out")
+      setTimeout(() => setError(""), 3000)
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            transition={{ duration: 0.2 }}
+          />
+
+          {/* Modal - Optimized for mobile */}
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-50 sm:bottom-auto sm:left-1/2 sm:top-1/2 w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl rounded-t-3xl bg-white dark:bg-gray-900 shadow-2xl max-h-[90vh] overflow-hidden"
+            initial={window.innerWidth < 640 ? { y: "100%" } : { scale: 0.95, opacity: 0, y: 20 }}
+            animate={window.innerWidth < 640 ? { y: 0 } : { scale: 1, opacity: 1, y: 0 }}
+            exit={window.innerWidth < 640 ? { y: "100%" } : { scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h2>
+              <button
+                onClick={onClose}
+                className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto p-6 space-y-6">
+              {/* Error Message */}
+              {error && (
+                <motion.div
+                  className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">{error}</p>
+                </motion.div>
+              )}
+
+              {/* Success Message */}
+              {success && (
+                <motion.div
+                  className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">{success}</p>
+                </motion.div>
+              )}
+
+              {/* Profile Photo Section */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <Avatar className="w-24 h-24 border-3 border-gray-200 dark:border-gray-700 ring-2 ring-blue-100 dark:ring-blue-900/30">
+                    {(formData.photoURL || profileImageUrl) && (
+                      <AvatarImage
+                        src={formData.photoURL || profileImageUrl || ""}
+                        alt={formData.displayName}
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-500 text-white text-3xl font-semibold">
+                      {formData.displayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Photo Upload Button */}
+                  <motion.button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                    className="absolute bottom-0 right-0 rounded-full bg-[#1e2bd6] p-2.5 text-white hover:bg-[#1a24b8] disabled:opacity-50 transition-colors shadow-lg border border-white dark:border-gray-900"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Camera className="w-4 h-4" />
+                  </motion.button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    disabled={isLoading}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Click to change photo</p>
+              </div>
+
+              {/* Name Field */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Full Name
+                </label>
+                <Input
+                  name="displayName"
+                  type="text"
+                  value={formData.displayName}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  placeholder="Your name"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-2.5"
+                />
+              </div>
+
+              {/* Email (Read-only) */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Email
+                </label>
+                <div className="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium">
+                  {formData.email || user?.email || "No email"}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 dark:border-gray-800" />
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  onClick={handleSaveProfile}
+                  disabled={isLoading}
+                  className="w-full bg-[#1e2bd6] hover:bg-[#1a24b8] text-white font-semibold py-3 rounded-xl disabled:opacity-50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isLoading ? "Saving..." : "Save"}
+                </motion.button>
+
+                <motion.button
+                  onClick={handleLogoutClick}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 font-semibold py-3 rounded-xl disabled:opacity-50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </motion.button>
+
+                <motion.button
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Close
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}

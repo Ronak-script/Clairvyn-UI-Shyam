@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { WaitlistSignup } from "@/components/WaitlistSignup"
 
@@ -11,10 +12,11 @@ type WaitlistModalProps = {
   onOpenChange: (open: boolean) => void
 }
 
-export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
+export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps & { userEmail?: string }) {
   const [formKey, setFormKey] = useState(0)
   const [mounted, setMounted] = useState(false)
   const skipNextReset = useRef(true)
+  const { user } = useAuth()
 
   useEffect(() => {
     setMounted(true)
@@ -68,7 +70,7 @@ export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
         <p className="mt-1 text-sm text-gray-600">
           Be the first to know when the Company plan is available.
         </p>
-        <WaitlistSignup key={formKey} title="" className="mt-4" />
+        <WaitlistSignup key={formKey} title="" className="mt-4" userEmail={user?.email || undefined} />
       </div>
     </div>,
     document.body

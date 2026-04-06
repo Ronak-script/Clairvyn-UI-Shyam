@@ -309,18 +309,24 @@ export default function HomePage() {
               <div className="flex flex-col touch:gap-2 gap-1 desktop:flex-row desktop:flex-wrap desktop:items-center desktop:gap-6">
                 <Link
                   href="/terms-of-service"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex min-h-12 items-center rounded-lg text-base font-medium text-gray-600 transition-colors hover:text-[#1e2bd6] focus:outline-none hover:underline desktop:min-h-0 desktop:text-[15px]"
                 >
                   Terms of Service
                 </Link>
                 <Link
                   href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex min-h-12 items-center rounded-lg text-base font-medium text-gray-600 transition-colors hover:text-[#1e2bd6] focus:outline-none hover:underline desktop:min-h-0 desktop:text-[15px]"
                 >
                   Privacy Policy
                 </Link>
                 <Link
                   href="/consent-notice"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex min-h-12 items-center rounded-lg text-base font-medium text-gray-600 transition-colors hover:text-[#1e2bd6] focus:outline-none hover:underline desktop:min-h-0 desktop:text-[15px]"
                 >
                   Consent Notice

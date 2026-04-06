@@ -206,6 +206,8 @@ export default function SignUpPage() {
                   </label>
                   <Link
                     href="/terms-of-service"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="font-semibold text-[#1E3A8A] underline underline-offset-2 hover:text-[#1e40af] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A8A] rounded"
                   >
                     Terms and Conditions
