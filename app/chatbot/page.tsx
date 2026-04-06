@@ -45,7 +45,7 @@ import {
   loadMessagesForChat,
 } from "@/lib/chat-service"
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
-import { canGuestGenerate, incrementGuestGenerationsUsed, FREE_GUEST_GENERATIONS, canUserGenerate, incrementUserGenerations } from "@/lib/guest-limits"
+import { FREE_GUEST_GENERATIONS, canUserGenerate, incrementUserGenerations } from "@/lib/guest-limits"
 import { profileCountryMissing } from "@/lib/meProfile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
@@ -657,12 +657,11 @@ export default function ChatbotPage() {
       return // DO NOT call backend — scripted demo handled it
     }
 
-    // Unpaid users: enforce per-user (authenticated) or global (guest) floor plan limit.
+    // Unpaid signed-in users: enforce per-user floor plan limit (3 free generations).
     // Founders are exempt from all generation limits.
     const isFounder = user?.email ? FOUNDER_EMAILS.includes(user.email.toLowerCase()) : false
-    if (!hasPaid && !isFounder) {
-      const hasGenerationsLeft = user ? canUserGenerate(user.uid) : canGuestGenerate()
-      if (!hasGenerationsLeft) {
+    if (!hasPaid && !isFounder && user) {
+      if (!canUserGenerate(user.uid)) {
         setWaitlistOpen(true)
         return
       }
@@ -759,15 +758,13 @@ export default function ChatbotPage() {
       // Only count a generation when the backend actually produced a floor plan
       // (extra_data.document_id or extra_data.png_url present on the last assistant message).
       // Pure conversational replies don't consume the quota. Founders are never counted.
-      if (!hasPaid && !isFounder) {
+      if (!hasPaid && !isFounder && user) {
         const lastAssistant = updatedHistory.filter((m) => m.role === "assistant").pop()
         const producedFloorPlan = Boolean(
           lastAssistant?.extra_data?.document_id || lastAssistant?.extra_data?.png_url
         )
         if (producedFloorPlan) {
-          const nextUsed = user
-            ? incrementUserGenerations(user.uid)
-            : incrementGuestGenerationsUsed()
+          const nextUsed = incrementUserGenerations(user.uid)
           if (nextUsed >= FREE_GUEST_GENERATIONS) {
             setWaitlistOpen(true)
           }
