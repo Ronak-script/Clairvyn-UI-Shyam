@@ -33,3 +33,38 @@ export function incrementGuestGenerationsUsed(): number {
 export function canGuestGenerate(): boolean {
   return getGuestGenerationsUsed() < FREE_GUEST_GENERATIONS
 }
+
+// --- Per-user generation tracking (for authenticated free users) ---
+// Each authenticated user gets their own counter tied to their UID so that:
+//  • different users on the same device don't share or pollute each other's quota
+//  • a user who logs out and back in keeps their usage count (no free-gen reset exploit)
+
+function getUserGenKey(userId: string): string {
+  return `clairvyn_gens_${userId}`
+}
+
+export function getUserGenerationsUsed(userId: string): number {
+  if (typeof window === "undefined") return 0
+  try {
+    const v = localStorage.getItem(getUserGenKey(userId))
+    const n = v ? parseInt(v, 10) : 0
+    return Number.isFinite(n) && n >= 0 ? n : 0
+  } catch {
+    return 0
+  }
+}
+
+export function canUserGenerate(userId: string): boolean {
+  return getUserGenerationsUsed(userId) < FREE_GUEST_GENERATIONS
+}
+
+export function incrementUserGenerations(userId: string): number {
+  if (typeof window === "undefined") return 1
+  const next = getUserGenerationsUsed(userId) + 1
+  try {
+    localStorage.setItem(getUserGenKey(userId), String(next))
+  } catch {
+    // ignore storage errors
+  }
+  return next
+}

@@ -2,168 +2,204 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Check, X } from "lucide-react"
+import { Check } from "lucide-react"
 import Link from "next/link"
 import { LandingHeader } from "@/components/LandingHeader"
 import { WaitlistModal } from "@/components/WaitlistModal"
 
-const basicFeatures = [
-  { label: "Limited prompts", included: true },
-  { label: "Basic admin", included: true },
-  { label: "Basic data retention", included: true },
-  { label: "Generative floor plans", included: true },
-  { label: "Custom data retention", included: false },
+const starterFeatures = [
+  { label: "3 floor plan generations", included: true },
+  { label: "Basic prompt assistance", included: true },
+  { label: "CAD-exportable outputs", included: true },
 ] as const
 
-const premiumFeatures = [
-  "Multi-step design",
-  "Unlimited prompts",
-  "Unlimited team seats",
-  "Advanced admin",
+const proFeatures = [
+  "Unlimited floor plan generations",
+  "Multi-step design workflows",
+  "Advanced prompt controls",
+  "CAD-exportable outputs",
+  "Priority support",
   "Custom data retention",
+] as const
+
+const studioFeatures = [
+  "Unlimited seats for students and faculty",
+  "Curriculum integration support",
+  "Institutional data governance",
+  "Custom onboarding",
+  "Priority support",
 ] as const
 
 export default function PricingPage() {
   const [waitlistOpen, setWaitlistOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black relative overflow-hidden overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-white via-indigo-50/30 to-blue-50/30 relative overflow-hidden overflow-x-hidden">
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-[#f6f4ff] dark:from-black dark:via-black dark:to-[#0b0a14]" />
-        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-300/60 blur-3xl dark:bg-purple-500/20" />
-        <div className="absolute -top-24 right-[-220px] h-[560px] w-[560px] rounded-full bg-blue-300/60 blur-3xl dark:bg-blue-500/20" />
-        <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/50 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/50 to-indigo-100/30" />
+        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-purple-300/40 blur-3xl" />
+        <div className="absolute -top-24 right-[-220px] h-[560px] w-[560px] rounded-full bg-blue-300/40 blur-3xl" />
+        <div className="absolute bottom-[-240px] left-[20%] h-[640px] w-[640px] rounded-full bg-indigo-300/30 blur-3xl" />
       </div>
 
       <LandingHeader />
 
-      <main className="container mx-auto px-4 pt-28 md:pt-36 pb-20 relative z-10">
-        <div className="max-w-5xl mx-auto">
+      <LandingHeader />
+
+      <main className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-20">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-16 text-center"
+        >
+          <h1 className="text-4xl font-bold text-gray-950 mb-4 md:text-5xl">
+            Simple, transparent pricing
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Choose the plan that works for you. Start free, upgrade anytime.
+          </p>
+        </motion.div>
+
+        {/* Pricing Cards - Three Equal Columns */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-20">
+          {/* Starter Tier */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: "easeOut" }}
-            className="text-center md:text-left"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="relative rounded-3xl bg-white/40 backdrop-blur-2xl border border-white/60 p-8 shadow-xl"
           >
-            <p className="text-xs font-semibold tracking-widest text-gray-600 dark:text-gray-300 mb-3">
-              PLANS &amp; PRICING
-            </p>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">
-              Simple plans for every studio
-            </h1>
-            <p className="mt-4 max-w-2xl mx-auto md:mx-0 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              Start free and upgrade when you need deeper workflows, more prompts, and team-ready controls.
-            </p>
-          </motion.div>
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="relative flex flex-col h-full">
+              <div>
+                <div className="inline-block px-3 py-1 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 text-xs font-semibold tracking-wide mb-4">
+                  FREE FOREVER
+                </div>
 
-          <motion.section
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: 0.06 }}
-            className="mt-12 grid w-full gap-6 md:grid-cols-2 md:gap-8"
-            aria-label="Pricing tiers"
-          >
-            <article className="flex flex-col rounded-[28px] border border-black/8 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md p-8 shadow-[0_16px_48px_rgba(30,43,214,0.08)]">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold text-[#0b1a3c] dark:text-white">Basic</h2>
-                <span className="rounded-full border border-black/10 dark:border-white/15 bg-gray-50 dark:bg-white/10 px-3 py-1 text-[10px] font-bold tracking-widest text-gray-600 dark:text-gray-300">
-                  DEFAULT
-                </span>
+                <h2 className="text-2xl font-bold text-gray-950 mb-2">Starter</h2>
+                <p className="text-gray-600 text-sm mb-6">
+                  Everything you need to explore architectural AI
+                </p>
+
+                <div className="mb-2">
+                  <span className="text-5xl font-bold text-gray-950">₹0</span>
+                </div>
+                <p className="text-gray-600 text-sm mb-8">No credit card required</p>
               </div>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                Core floor-plan assistance and essentials to get started.
-              </p>
-
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">
-                  Free
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Forever — no card required</p>
-
-              <ul className="mt-8 flex-1 space-y-3 text-sm">
-                {basicFeatures.map((feature) => (
-                  <li key={feature.label} className="flex items-start gap-3 text-gray-700 dark:text-gray-200">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                        feature.included
-                          ? "bg-[#1e2bd6]/10 text-[#1e2bd6] dark:bg-[#1e2bd6]/25 dark:text-[#a5b0ff]"
-                          : "bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500"
-                      }`}
-                      aria-hidden
-                    >
-                      {feature.included ? <Check className="h-3 w-3" strokeWidth={2.5} /> : <X className="h-3 w-3" strokeWidth={2.5} />}
-                    </span>
-                    <span className="leading-snug">{feature.label}</span>
-                  </li>
-                ))}
-              </ul>
 
               <Link
-                href="/signup"
-                className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-black/10 dark:border-white/15 bg-white dark:bg-white/10 px-6 py-3.5 text-sm font-semibold text-[#0b1a3c] dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-white/15 transition-colors"
+                href="/chatbot"
+                className="w-full inline-flex items-center justify-center rounded-full bg-[#1e2bd6] text-white font-semibold py-3 px-6 transition-all hover:bg-[#1a24b8] hover:shadow-lg hover:shadow-[rgba(30,43,214,0.25)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-8"
               >
                 Get started free
               </Link>
-            </article>
 
-            <article className="relative flex flex-col rounded-[28px] border border-[#1e2bd6]/25 dark:border-[#1e2bd6]/40 bg-gradient-to-b from-white to-[#eef0ff] dark:from-white/10 dark:to-[#12122a]/80 backdrop-blur-md p-8 shadow-[0_24px_70px_rgba(30,43,214,0.14)] ring-1 ring-[#1e2bd6]/10 dark:ring-[#1e2bd6]/20">
-              <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#1e2bd6]/40 to-transparent dark:via-[#6b7cff]/50" aria-hidden />
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold text-[#0b1a3c] dark:text-white">Company</h2>
-                <span className="rounded-full bg-[#1e2bd6] px-3 py-1 text-[10px] font-bold tracking-widest text-white shadow-sm">
-                  PREMIUM
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                Full workspace power for teams that live in iteration and reviews.
-              </p>
-
-              <div className="mt-6 flex flex-wrap items-baseline gap-1">
-                <span className="text-lg font-semibold text-gray-500 dark:text-gray-400">₹</span>
-                <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b1a3c] dark:text-white">299</span>
-                <span className="text-base font-medium text-gray-600 dark:text-gray-300">/month</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Billed monthly · cancel anytime</p>
-
-              <ul className="mt-8 flex-1 space-y-3 text-sm">
-                {premiumFeatures.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-gray-700 dark:text-gray-200">
-                    <span
-                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1e2bd6]/10 text-[#1e2bd6] dark:bg-[#1e2bd6]/25 dark:text-[#a5b0ff]"
-                      aria-hidden
-                    >
-                      <Check className="h-3 w-3" strokeWidth={2.5} />
-                    </span>
-                    <span className="leading-snug">{feature}</span>
-                  </li>
+              <div className="space-y-4">
+                {starterFeatures.map((feature) => (
+                  <div key={feature.label} className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    <span className="text-gray-700 text-sm">{feature.label}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Pro Tier - Highlighted */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="relative rounded-3xl bg-gradient-to-br from-indigo-500/20 via-blue-500/20 to-indigo-500/10 backdrop-blur-2xl border-2 border-[#1e2bd6]/50 p-8 shadow-2xl ring-1 ring-[#1e2bd6]/20"
+          >
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="relative flex flex-col h-full">
+              <div>
+                <div className="inline-block px-3 py-1 rounded-full bg-indigo-500/30 backdrop-blur-md border border-white/60 text-indigo-900 text-xs font-semibold tracking-wide mb-4">
+                  FULL ACCESS
+                </div>
+
+                <h2 className="text-2xl font-bold text-gray-950 mb-2">Pro</h2>
+                <p className="text-gray-600 text-sm mb-6">
+                  Full power for architects who move fast
+                </p>
+
+                <div className="mb-2">
+                  <span className="text-5xl font-bold text-gray-950">₹299</span>
+                  <span className="text-gray-600 text-lg">/month</span>
+                </div>
+                <p className="text-gray-600 text-sm mb-8">Billed monthly · cancel anytime</p>
+              </div>
 
               <button
-                type="button"
                 onClick={() => setWaitlistOpen(true)}
-                className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[#1e2bd6] px-6 py-3.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
+                className="w-full inline-flex items-center justify-center rounded-full bg-[#1e2bd6] text-white font-semibold py-3 px-6 transition-all hover:bg-[#1a24b8] hover:shadow-lg hover:shadow-[rgba(30,43,214,0.25)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-8"
               >
                 Join waitlist
               </button>
-            </article>
-          </motion.section>
 
-          <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} />
+              <div className="space-y-4">
+                {proFeatures.map((feature) => (
+                  <div key={feature} className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-[#1e2bd6] flex-shrink-0" />
+                    <span className="text-gray-700 text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.45, delay: 0.14 }}
-            className="mt-14 text-center md:text-left"
+          {/* Studio Tier */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="relative rounded-3xl bg-white/40 backdrop-blur-2xl border border-white/60 p-8 shadow-xl"
           >
-            <Link href="/" className="text-sm font-semibold text-[#1e2bd6] hover:underline">
-              ← Back to home
-            </Link>
-          </motion.p>
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="relative flex flex-col h-full">
+              <div>
+                <div className="inline-block px-3 py-1 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-gray-700 text-xs font-semibold tracking-wide mb-4">
+                  FOR INSTITUTIONS
+                </div>
+
+                <h2 className="text-2xl font-bold text-gray-950 mb-2">Studio</h2>
+                <p className="text-gray-600 text-sm mb-6">
+                  Integration and access for architecture colleges
+                </p>
+
+                <div className="mb-2">
+                  <span className="text-5xl font-bold text-gray-950">Custom</span>
+                </div>
+                <p className="text-gray-600 text-sm mb-8">Tailored for your institution's needs</p>
+              </div>
+
+              <a
+                href="mailto:hello@clairvyn.com"
+                className="w-full inline-flex items-center justify-center rounded-full bg-[#1e2bd6] text-white font-semibold py-3 px-6 transition-all hover:bg-[#1a24b8] hover:shadow-lg hover:shadow-[rgba(30,43,214,0.25)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-8"
+              >
+                Contact us
+              </a>
+
+              <div className="space-y-4">
+                {studioFeatures.map((feature) => (
+                  <div key={feature} className="flex items-center gap-3">
+                    <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    <span className="text-gray-700 text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </main>
+
+      <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} />
     </div>
   )
 }

@@ -35,8 +35,133 @@ export function useClairvynOnboarding({
     }
   }, [])
 
+  const isDark = useCallback(() => {
+    return typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  }, [])
+
+  const applyPopoverTheme = useCallback(() => {
+    const dark = isDark()
+    const popover = document.querySelector<HTMLElement>(".driver-popover.clairvyn-driver-popover")
+    if (!popover) return
+
+    // Use setProperty to avoid wiping driver.js positioning inline styles
+    const set = (el: HTMLElement, props: Record<string, string>) => {
+      Object.entries(props).forEach(([k, v]) => el.style.setProperty(k, v, "important"))
+    }
+
+    if (dark) {
+      set(popover, {
+        "background": "#2D2C2B",
+        "background-color": "#2D2C2B",
+        "border": "1px solid rgba(255,255,255,0.1)",
+        "box-shadow": "0 24px 64px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.4)",
+        "color": "#F5E6D3",
+        "padding": "28px",
+        "border-radius": "20px",
+        "max-width": "min(420px, 90vw)",
+      })
+    }
+
+    const title = popover.querySelector<HTMLElement>(".driver-popover-title")
+    if (title) set(title, {
+      "color": dark ? "#F5E6D3" : "#0f172a",
+      "font-size": "1.4rem",
+      "font-weight": "700",
+      "letter-spacing": "-0.02em",
+      "padding-bottom": "14px",
+      "margin-bottom": "14px",
+      "background": "transparent",
+      "border": "none",
+      "outline": "none",
+    })
+
+    const desc = popover.querySelector<HTMLElement>(".driver-popover-description")
+    if (desc) set(desc, {
+      "color": dark ? "#C8C4BC" : "#475569",
+      "font-size": "1rem",
+      "line-height": "1.65",
+      "margin": "0",
+      "background": "transparent",
+      "border": "none",
+      "outline": "none",
+    })
+
+    const footer = popover.querySelector<HTMLElement>(".driver-popover-footer")
+    if (footer) set(footer, {
+      "display": "flex",
+      "align-items": "center",
+      "justify-content": "space-between",
+      "margin-top": "20px",
+      "padding-top": "16px",
+      "background": "transparent",
+      "background-color": "transparent",
+      "border": "none",
+      "outline": "none",
+    })
+
+    const progress = popover.querySelector<HTMLElement>(".driver-popover-progress-text")
+    if (progress) set(progress, {
+      "color": dark ? "#8A8680" : "#64748b",
+      "font-size": "0.82rem",
+      "background": "transparent",
+      "background-color": "transparent",
+    })
+
+    const closeBtn = popover.querySelector<HTMLElement>(".driver-popover-close-btn")
+    if (closeBtn) set(closeBtn, {
+      "color": dark ? "#8A8680" : "#64748b",
+      "background": "transparent",
+      "background-color": "transparent",
+      "box-shadow": "none",
+      "border": "none",
+      "pointer-events": "auto",
+      "cursor": "pointer",
+    })
+
+    const prevBtn = popover.querySelector<HTMLElement>(".driver-popover-prev-btn")
+    if (prevBtn) set(prevBtn, {
+      "background": dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      "background-color": dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      "color": dark ? "#B1ADA1" : "#0f172a",
+      "border": dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.1)",
+      "border-radius": "10px",
+      "padding": "9px 18px",
+      "font-size": "0.9rem",
+      "font-weight": "600",
+      "text-shadow": "none",
+      "box-shadow": "none",
+      "cursor": "pointer",
+    })
+
+    const nextBtn = popover.querySelector<HTMLElement>(".driver-popover-next-btn")
+      ?? popover.querySelector<HTMLElement>(".driver-popover-done-btn")
+    if (nextBtn) set(nextBtn, {
+      "background": dark ? "#F5E6D3" : "#1A1918",
+      "background-color": dark ? "#F5E6D3" : "#1A1918",
+      "color": dark ? "#1A1918" : "#F5E6D3",
+      "border": "none",
+      "border-radius": "10px",
+      "padding": "9px 18px",
+      "font-size": "0.9rem",
+      "font-weight": "600",
+      "text-shadow": "none",
+      "box-shadow": "none",
+      "cursor": "pointer",
+    })
+
+    const navBtns = popover.querySelector<HTMLElement>(".driver-popover-navigation-btns")
+    if (navBtns) set(navBtns, {
+      "display": "flex",
+      "gap": "8px",
+      "background": "transparent",
+      "background-color": "transparent",
+      "flex-grow": "1",
+      "justify-content": "flex-end",
+    })
+  }, [isDark])
+
   const startTour = useCallback(() => {
-    if (typeof window === "undefined" || authLoading || !userUid || isGuest) return
+    if (typeof window === "undefined" || authLoading) return
 
     clearScheduledTour()
     unmountingRef.current = false
@@ -46,7 +171,7 @@ export function useClairvynOnboarding({
     setIsSidebarOpen(true)
 
     const markFinished = () => {
-      localStorage.setItem(onboardingDoneStorageKey(userUid), "1")
+      if (userUid) localStorage.setItem(onboardingDoneStorageKey(userUid), "1")
     }
 
     tourTimeoutRef.current = window.setTimeout(() => {
@@ -64,56 +189,43 @@ export function useClairvynOnboarding({
         nextBtnText: "Next",
         prevBtnText: "Back",
         doneBtnText: "Done",
-        onDestroyed: () => {
+        onPopoverRender: () => {
+          applyPopoverTheme()
+        },
+        onDestroyStarted: (_el, _step, { driver: d }) => {
+          d.destroy()
           driverRef.current = null
-          if (unmountingRef.current) return
-          markFinished()
+          if (!unmountingRef.current) markFinished()
+        },
+        onNextClick: (_el, _step, { driver: d }) => {
+          d.moveNext()
+        },
+        onPrevClick: (_el, _step, { driver: d }) => {
+          d.movePrevious()
+        },
+        onOverlayClick: (_el, _step, { driver: d }) => {
+          if (d.isLastStep()) {
+            d.destroy()
+            markFinished()
+          } else {
+            d.moveNext()
+          }
         },
         steps: [
           {
-            element: '[data-onboarding="sidebar-profile"]',
+            element: "body",
             popover: {
-              title: "Your profile",
-              description: "Access your profile here.",
-              side: "right",
-              align: "start",
-            },
-            onHighlighted: (_el, _step, { driver: d }) => {
-              setIsSidebarOpen(true)
-              window.setTimeout(() => d.refresh(), LAYOUT_MS)
-            },
-          },
-          {
-            element: '[data-onboarding="new-chat"]',
-            popover: {
-              title: "New chat",
-              description: "Generate different prompts using new chat option.",
-              side: "right",
-              align: "start",
-            },
-            onHighlighted: (_el, _step, { driver: d }) => {
-              setIsSidebarOpen(true)
-              window.setTimeout(() => d.refresh(), LAYOUT_MS)
-            },
-          },
-          {
-            element: '[data-onboarding="recent-chats"]',
-            popover: {
-              title: "Recent chats",
-              description: "You can access your previously generated prompts here.",
-              side: "right",
-              align: "start",
-            },
-            onHighlighted: (_el, _step, { driver: d }) => {
-              setIsSidebarOpen(true)
-              window.setTimeout(() => d.refresh(), LAYOUT_MS)
+              title: "Welcome to Clairvyn",
+              description: "Clairvyn generates residential floor plans from text. Describe your requirements and the AI will produce a layout you can download.",
+              side: "center",
+              align: "center",
             },
           },
           {
             element: '[data-onboarding="chat-input"]',
             popover: {
-              title: "Floor plan prompts",
-              description: "Use this chatbot to generate architectural floor plans",
+              title: "Describe Your Floor Plan",
+              description: "Type your requirements here — area, number of rooms, BHK type, or any specific layout needs. The AI will generate a floor plan based on your description.",
               side: "top",
               align: "center",
             },
@@ -121,16 +233,48 @@ export function useClairvynOnboarding({
               setIsSidebarOpen(false)
             },
             onHighlighted: (_el, _step, { driver: d }) => {
-              window.setTimeout(() => d.refresh(), LAYOUT_MS)
+              window.setTimeout(() => {
+                d.refresh()
+              }, LAYOUT_MS)
             },
           },
           {
             element: '[data-onboarding="send"]',
             popover: {
-              title: "Send",
-              description: "Hit send after generating the whole prompt",
+              title: "Generate",
+              description: "Hit this to send your description. Generation takes about 5–10 minutes.",
               side: "top",
               align: "end",
+            },
+          },
+          {
+            element: '[data-onboarding="new-chat"]',
+            popover: {
+              title: "New Generation",
+              description: "Start a fresh chat to generate a different floor plan. Previous chats are saved in the sidebar.",
+              side: "right",
+              align: "start",
+            },
+            onHighlighted: (_el, _step, { driver: d }) => {
+              setIsSidebarOpen(true)
+              window.setTimeout(() => {
+                d.refresh()
+              }, LAYOUT_MS)
+            },
+          },
+          {
+            element: '[data-onboarding="recent-chats"]',
+            popover: {
+              title: "Your Past Designs",
+              description: "All your previously generated floor plans are listed here. Click any to revisit it.",
+              side: "right",
+              align: "start",
+            },
+            onHighlighted: (_el, _step, { driver: d }) => {
+              setIsSidebarOpen(true)
+              window.setTimeout(() => {
+                d.refresh()
+              }, LAYOUT_MS)
             },
           },
         ],
@@ -139,10 +283,11 @@ export function useClairvynOnboarding({
       driverRef.current = driverObj
       driverObj.drive(0)
     }, START_DELAY_MS)
-  }, [authLoading, userUid, isGuest, setIsSidebarOpen, clearScheduledTour])
+  }, [authLoading, userUid, applyPopoverTheme, setIsSidebarOpen, clearScheduledTour])
 
   useEffect(() => {
-    if (authLoading || !userUid || isGuest) return
+    if (authLoading || isGuest) return
+    if (!userUid) return
     const show = sessionStorage.getItem(ONBOARDING_SESSION_KEY) === "1"
     const done = localStorage.getItem(onboardingDoneStorageKey(userUid))
     if (!show || done) return

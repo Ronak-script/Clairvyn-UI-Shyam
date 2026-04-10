@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { handleScriptedInput } from "@/lib/demoScript"
-import TypingIndicator from "@/components/TypingIndicator"
+import LandingPageLoader from "@/components/LandingPageLoader"
 import {
   Menu,
   X,
@@ -13,17 +13,17 @@ import {
   Settings,
   LogOut,
   LogIn,
-  Search,
-  History,
-  Save,
   Plus,
-  Loader2,
   Trash2,
   Download,
   FileDown,
   CircleHelp,
   ThumbsUp,
   ThumbsDown,
+  Home,
+  DollarSign,
+  Shield,
+  Info,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { useAuth } from "@/contexts/AuthContext"
@@ -38,16 +38,19 @@ import {
   ChatSession,
   getUserChatSessions,
   deleteChatSession,
+  clearUserSessions,
   getLastActiveChatId,
   setLastActiveChatId,
   loadMessagesForChat,
 } from "@/lib/chat-service"
 import { apiFetch, getBackendUrl } from "@/lib/backendApi"
-import { canGuestGenerate, incrementGuestGenerationsUsed, FREE_GUEST_GENERATIONS } from "@/lib/guest-limits"
+import { FREE_GUEST_GENERATIONS, canUserGenerate, incrementUserGenerations } from "@/lib/guest-limits"
 import { profileCountryMissing } from "@/lib/meProfile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useClairvynOnboarding } from "@/hooks/useClairvynOnboarding"
 import { WaitlistModal } from "@/components/WaitlistModal"
+import { UserProfileModal } from "@/components/UserProfileModal"
+import { GreetingMessage } from "@/components/GreetingMessage"
 
 /** Shown while waiting for an assistant turn; phases follow elapsed time; line changes every 20–30s. */
 const ASSISTANT_STATUS_PHASES: readonly (readonly string[])[] = [
@@ -58,7 +61,7 @@ const ASSISTANT_STATUS_PHASES: readonly (readonly string[])[] = [
     "Defining room relationships",
   ],
   [
-    "Generating initial floorplan structure",
+    "Generating initial floor plan structure",
     "Optimizing room placements for flow",
     "Aligning walls and dimensions",
     "Ensuring structural feasibility",
@@ -196,12 +199,16 @@ function AuthImage({
   return <img src={objectUrl} alt={alt} className={className} />
 }
 
+/** Founders always get unlimited generations regardless of payment status. */
+const FOUNDER_EMAILS = ["ronakmm2005@gmail.com", "yaswantmodi@gmail.com"]
+
 export default function ChatbotPage() {
   const { user, logout, loading: authLoading, getIdToken, isGuest } = useAuth()
   const { isDarkMode, toggleDarkMode } = useTheme()
   const router = useRouter()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // used for mobile drawer
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false) // Profile modal state
 
   const { startTutorial } = useClairvynOnboarding({
     authLoading,
@@ -237,12 +244,68 @@ export default function ChatbotPage() {
     return normalizeImageUrl(url)
   }
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (DISABLED FOR LOCAL TESTING)
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/signin")
-    }
+    // TEMPORARILY DISABLED: Allow viewing chatbot without auth
+    // if (!authLoading && !user) {
+    //   router.push("/signin")
+    // }
   }, [user, authLoading, router])
+
+  // Mark that user has visited the app (for redirect logic on landing page)
+  useEffect(() => {
+    if (user && !authLoading) {
+      sessionStorage.setItem("hasVisitedApp", "true")
+      // Update last chatbot activity timestamp
+      sessionStorage.setItem("lastChatbotActivityTime", Date.now().toString())
+    }
+  }, [user, authLoading])
+
+  // Update last activity time periodically while chatbot is open
+  useEffect(() => {
+    if (!user || authLoading) return
+    
+    const updateActivityTime = () => {
+      sessionStorage.setItem("lastChatbotActivityTime", Date.now().toString())
+    }
+    
+    // Update every 10 seconds while chatbot is active
+    const interval = setInterval(updateActivityTime, 10000)
+    
+    // Also update on user interaction
+    window.addEventListener("click", updateActivityTime)
+    window.addEventListener("keydown", updateActivityTime)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("click", updateActivityTime)
+      window.removeEventListener("keydown", updateActivityTime)
+    }
+  }, [user, authLoading])
+
+  // Smooth keyboard handling on mobile — prevents the "zoom/snap" when the
+  // soft keyboard opens by scrolling the focused input into view gently.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const onViewportResize = () => {
+      const active = document.activeElement
+      if (
+        active instanceof HTMLElement &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        // Small delay lets the keyboard fully settle before scrolling
+        setTimeout(() => {
+          active.scrollIntoView({ block: "nearest", behavior: "smooth" })
+        }, 50)
+      }
+    }
+
+    vv.addEventListener("resize", onViewportResize)
+    return () => vv.removeEventListener("resize", onViewportResize)
+  }, [])
 
   // Fetch has_paid / profile image; require backend profile country for signed-in (non-guest) users
   useEffect(() => {
@@ -280,8 +343,10 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [typing, setTyping] = useState(false)
   const [inputValue, setInputValue] = useState("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [placeholderText, setPlaceholderText] = useState("Design a Floor-plan for a 3BHK House")
   const [isFirstSubmit, setIsFirstSubmit] = useState<boolean>(true)
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false)
 
   // Helper function for demo script
   const addMessage = (msg: any) => setMessages(prev => [...prev, msg])
@@ -296,6 +361,7 @@ export default function ChatbotPage() {
   const [backendChatId, setBackendChatId] = useState<string | null>(null)
   const [showGuestBanner, setShowGuestBanner] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [feedbackByMessage, setFeedbackByMessage] = useState<Record<string, MessageFeedbackState>>({})
   const [feedbackSubmittingByMessage, setFeedbackSubmittingByMessage] = useState<Record<string, boolean>>({})
   const [waitlistOpen, setWaitlistOpen] = useState(false)
@@ -303,6 +369,24 @@ export default function ChatbotPage() {
   // Chat history state (integrated into sidebar)
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+
+  // Guard to prevent initChat running concurrently for the same user (race condition fix)
+  const initStartedForUidRef = useRef<string | null>(null)
+  // Guard to prevent concurrent handleSubmit calls (e.g. rapid double-click before React re-renders)
+  const submittingRef = useRef(false)
+
+  // Auto-resize textarea as inputValue changes
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [inputValue])
+
+  // Scroll to bottom whenever messages update or loading state changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isLoading])
 
   const getFeedbackKey = (message: ChatMessage, index: number): string => {
     const id = (message as any)?.id
@@ -363,30 +447,42 @@ export default function ChatbotPage() {
   // Load messages on mount - only create new local chat if user has no sessions (prevents duplicate from Strict Mode)
   useEffect(() => {
     console.log("[Clairvyn] init effect", { hasUser: !!user, currentChatId, authLoading });
-    if (user && !currentChatId) {
-      const initChat = async () => {
+    if (!user || authLoading) return
+    // Prevent concurrent runs for the same user (guards against getIdToken reference churn)
+    if (initStartedForUidRef.current === user.uid) return
+    initStartedForUidRef.current = user.uid
+
+    let cancelled = false
+    const uid = user.uid
+
+    const initChat = async () => {
         const token = await getIdToken()
+        if (cancelled) return
         console.log("[Clairvyn] initChat: loading sessions", { hasToken: !!token });
         let sessions: ChatSession[] = []
 
         if (token) {
           try {
-            sessions = await getUserChatSessions(user.uid, token)
+            sessions = await getUserChatSessions(uid, token)
           } catch (err) {
             console.warn("[Clairvyn] initChat: backend failed, falling back to local", err)
-            sessions = await getUserChatSessions(user.uid)
+            sessions = await getUserChatSessions(uid)
           }
         } else {
-          sessions = await getUserChatSessions(user.uid)
+          sessions = await getUserChatSessions(uid)
         }
 
+        if (cancelled) return
         console.log("[Clairvyn] initChat: sessions loaded", { count: sessions.length });
         setChatSessions(sessions)
         if (sessions.length === 0) {
-          console.log("[Clairvyn] initChat: no sessions, creating new chat");
-          await createNewChat()
+          // No sessions yet — don't persist anything; wait for first message
+          console.log("[Clairvyn] initChat: no sessions, starting blank")
+          setCurrentChatId(null)
+          setMessages([])
+          setHasStarted(false)
         } else {
-          const preferredId = getLastActiveChatId(user.uid)
+          const preferredId = getLastActiveChatId(uid)
           const fallbackId = sessions[0].id
           const targetId =
             preferredId && sessions.some((s) => s.id === preferredId) ? preferredId : fallbackId
@@ -397,10 +493,13 @@ export default function ChatbotPage() {
           })
 
           const { messages: sessionMessages, fromBackend: loadedFromBackend } =
-            await loadMessagesForChat(targetId, token)
+            await loadMessagesForChat(uid, targetId, token)
+
+          if (cancelled) return
 
           if (loadedFromBackend) {
             await setChatMessages(
+              uid,
               targetId,
               sessionMessages.map((m) => ({
                 ...m,
@@ -424,12 +523,13 @@ export default function ChatbotPage() {
             }))
           )
           setHasStarted(sessionMessages.length > 0)
-          setLastActiveChatId(user.uid, targetId)
+          setLastActiveChatId(uid, targetId)
         }
       }
       initChat()
-    }
-  }, [user, getIdToken])
+      return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, authLoading])
 
   // After return from PhonePe: confirm payment, then refetch has_paid
   useEffect(() => {
@@ -476,41 +576,16 @@ export default function ChatbotPage() {
     }
   }, [user, profileImageUrl])
 
-  const createNewChat = async () => {
-    console.log("[Clairvyn] createNewChat called", { hasUser: !!user });
-    if (user) {
-      setIsLoading(true)
-      try {
-        let localId: string | null = null
-        const token = await getIdToken()
-        if (token) {
-          try {
-            const data = await apiFetch<{ id: string; title: string | null; metadata: any }>(
-              "/api/chats",
-              { method: "POST", body: { title: null, metadata: {} }, token }
-            )
-            localId = typeof data.id === "number" ? String(data.id) : data.id
-            setBackendChatId(localId)
-            console.log("[Clairvyn] createNewChat: backend chat created", { id: localId, title: data.title });
-          } catch (err) {
-            console.warn("[Clairvyn] createNewChat: backend create failed", err)
-          }
-        }
-
-        const chatId = await createChatSession(user.uid, localId || undefined)
-        setCurrentChatId(chatId)
-        setLastActiveChatId(user.uid, chatId)
-        if (!localId) setBackendChatId(null)
-
-        setMessages([])
-        setHasStarted(false)
-        console.log("[Clairvyn] createNewChat: done", { chatId, backendId: localId });
-      } catch (error) {
-        console.error("[Clairvyn] createNewChat error", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const createNewChat = () => {
+    // Guard: already on a blank unsaved chat — nothing to do
+    if (!hasStarted && currentChatId === null) return
+    setMessages([])
+    setHasStarted(false)
+    setCurrentChatId(null)
+    setBackendChatId(null)
+    setInputValue("")
+    if (textareaRef.current) textareaRef.current.style.height = "auto"
+    console.log("[Clairvyn] createNewChat: reset to blank (will persist on first message)")
   }
 
   const ensureBackendChat = async (): Promise<string | null> => {
@@ -536,9 +611,11 @@ export default function ChatbotPage() {
       )
       const backendId = String(data.id)
       if (currentChatId && currentChatId !== backendId) {
-        await renameChatSession(currentChatId, backendId)
-        setCurrentChatId(backendId)
-        if (user) setLastActiveChatId(user.uid, backendId)
+        if (user) {
+          await renameChatSession(user.uid, currentChatId, backendId)
+          setCurrentChatId(backendId)
+          setLastActiveChatId(user.uid, backendId)
+        }
       }
       setBackendChatId(backendId)
       console.log("[Clairvyn] ensureBackendChat: done", { backendId, title: data.title });
@@ -584,6 +661,9 @@ export default function ChatbotPage() {
 
     // Clear input and update placeholder for next turn
     setInputValue("")
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+    }
     if (isFirstSubmit) {
       setPlaceholderText(getContextualSuggestion(normalized))
       setIsFirstSubmit(false)
@@ -597,19 +677,46 @@ export default function ChatbotPage() {
       return // DO NOT call backend — scripted demo handled it
     }
 
-    // Unpaid users: free generations (localStorage), then waitlist
-    if (!hasPaid && !canGuestGenerate()) {
-      setWaitlistOpen(true)
-      return
+    // Unpaid signed-in users: enforce per-user floor plan limit (3 free generations).
+    // Founders are exempt from all generation limits.
+    const isFounder = user?.email ? FOUNDER_EMAILS.includes(user.email.toLowerCase()) : false
+    if (!hasPaid && !isFounder && user) {
+      if (!canUserGenerate(user.uid)) {
+        setWaitlistOpen(true)
+        return
+      }
     }
+
+    // Block concurrent submissions: synchronous ref check ensures the second click is
+    // rejected before React has had a chance to re-render the disabled Send button.
+    if (submittingRef.current) return
+    submittingRef.current = true
 
     setIsTurnInFlight(true)
     setIsLoading(true)
-    console.log("[Clairvyn] handleSubmit: start", { userText: userText.slice(0, 50), currentChatId, hasUser: !!user });
+
+    // Lazily create the local chat session on the very first message
+    let activeChatId = currentChatId
+    if (!activeChatId && user) {
+      const newId = await createChatSession(user.uid)
+      activeChatId = newId
+      setCurrentChatId(newId)
+      setLastActiveChatId(user.uid, newId)
+      setChatSessions(prev => [{
+        id: newId,
+        userId: user.uid,
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }, ...prev])
+      console.log("[Clairvyn] handleSubmit: created new session on first message", { newId })
+    }
+
+    console.log("[Clairvyn] handleSubmit: start", { userText: userText.slice(0, 50), activeChatId, hasUser: !!user });
 
     try {
-      if (user && currentChatId) {
-        await addMessageToChat(currentChatId, userMessage)
+      if (user && activeChatId) {
+        await addMessageToChat(user.uid, activeChatId, userMessage)
       }
 
       const token = await getIdToken()
@@ -679,26 +786,35 @@ export default function ChatbotPage() {
         feedback_submitted: Boolean(m.feedback_submitted),
       }));
 
-      if (currentChatId) {
-        await setChatMessages(currentChatId, updatedHistory)
+      if (activeChatId && user) {
+        await setChatMessages(user.uid, activeChatId, updatedHistory)
       }
 
       setMessages(updatedHistory)
       console.log("[Clairvyn] handleSubmit: success", { historyLength: updatedHistory.length, assistantContent: (data as any)?.assistant_message?.content });
 
-      if (!hasPaid) {
-        const nextUsed = incrementGuestGenerationsUsed()
-        if (nextUsed >= FREE_GUEST_GENERATIONS) {
-          setWaitlistOpen(true)
+      // Only count a generation when the backend actually produced a floor plan
+      // (extra_data.document_id or extra_data.png_url present on the last assistant message).
+      // Pure conversational replies don't consume the quota. Founders are never counted.
+      if (!hasPaid && !isFounder && user) {
+        const lastAssistant = updatedHistory.filter((m) => m.role === "assistant").pop()
+        const producedFloorPlan = Boolean(
+          lastAssistant?.extra_data?.document_id || lastAssistant?.extra_data?.png_url
+        )
+        if (producedFloorPlan) {
+          const nextUsed = incrementUserGenerations(user.uid)
+          if (nextUsed >= FREE_GUEST_GENERATIONS) {
+            setWaitlistOpen(true)
+          }
         }
       }
 
       // Optimistically set chat title in sidebar from first user message
-      if (currentChatId) {
+      if (activeChatId) {
         const titleFromMessage = userText.slice(0, 80).trim() || "New chat"
         setChatSessions((prev) =>
           prev.map((s) =>
-            s.id === currentChatId ? { ...s, title: s.title ?? titleFromMessage } : s
+            s.id === activeChatId ? { ...s, title: s.title ?? titleFromMessage } : s
           )
         )
       }
@@ -721,6 +837,7 @@ export default function ChatbotPage() {
       }
       setMessages(prev => [...prev, { ...errorMessage, timestamp: new Date().toISOString() }])
     } finally {
+      submittingRef.current = false
       setIsTurnInFlight(false)
       setIsLoading(false)
     }
@@ -857,6 +974,23 @@ export default function ChatbotPage() {
 
   const handleLogout = async () => {
     console.log("[Clairvyn] handleLogout");
+    
+    // Clear redirect flags before logout to ensure clean state
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("fromChatbot")
+        sessionStorage.removeItem("hasVisitedApp")
+        sessionStorage.removeItem("lastChatbotActivityTime")
+      }
+    } catch (e) {
+      console.warn("[Clairvyn] Error clearing sessionStorage in handleLogout", e)
+    }
+
+    // Clear locally cached chat sessions so they don't bleed into the next user's session
+    if (user) {
+      try { clearUserSessions(user.uid) } catch { /* ignore */ }
+    }
+    
     // Notify backend for auditing (optional; don't block sign-out if it fails)
     try {
       const idToken = await getIdToken()
@@ -880,16 +1014,6 @@ export default function ChatbotPage() {
 
   const handleSignIn = () => {
     router.push("/signin")
-  }
-
-  const handleSearchDesigns = () => {
-    // TODO: Implement search functionality
-    alert("Search Designs feature coming soon!")
-  }
-
-  const handleSavedDesigns = () => {
-    // TODO: Implement saved designs functionality
-    alert("Saved Designs feature coming soon!")
   }
 
   const handleHistory = async () => {
@@ -922,10 +1046,25 @@ export default function ChatbotPage() {
     }
   }
 
+  const handleGoHome = () => {
+    try {
+      // Set flag so landing page doesn't redirect us back to chatbot
+      sessionStorage.setItem("fromChatbot", "true")
+      // Clear the hasVisitedApp flag so landing page logic works correctly
+      sessionStorage.removeItem("hasVisitedApp")
+      sessionStorage.removeItem("lastChatbotActivityTime")
+    } catch (e) {
+      // sessionStorage not available - still navigate home
+      console.warn("[Clairvyn] sessionStorage not available in handleGoHome")
+    }
+    router.push("/")
+  }
+
   const handleDeleteChat = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
+    if (!user) return
     const token = await getIdToken()
-    const ok = await deleteChatSession(sessionId, token ?? null)
+    const ok = await deleteChatSession(user.uid, sessionId, token ?? null)
     if (!ok) return
     setChatSessions((prev) => prev.filter((s) => s.id !== sessionId))
     if (currentChatId === sessionId) {
@@ -945,11 +1084,11 @@ export default function ChatbotPage() {
     try {
       const token = await getIdToken()
       const { messages: sessionMessages, fromBackend: loadedFromBackend } =
-        await loadMessagesForChat(chatId, token)
+        await loadMessagesForChat(user?.uid || '', chatId, token)
       console.log("[Clairvyn] loadChatSession: messages loaded", { chatId, count: sessionMessages.length, fromBackend: loadedFromBackend });
 
-      if (loadedFromBackend) {
-        await setChatMessages(chatId, sessionMessages.map((m) => ({
+      if (loadedFromBackend && user) {
+        await setChatMessages(user.uid, chatId, sessionMessages.map((m) => ({
           ...m,
           timestamp: typeof m.timestamp === "string" ? m.timestamp : (m.timestamp as Date).toISOString()
         })))
@@ -971,21 +1110,19 @@ export default function ChatbotPage() {
 
   const sidebarItems = [
     { icon: Plus, label: "New Chat", action: createNewChat },
-    { icon: Search, label: "Search Designs", action: handleSearchDesigns },
-    { icon: Save, label: "Saved Designs", action: handleSavedDesigns },
-    { icon: History, label: "History", action: handleHistory },
+    { icon: Home, label: "Home", action: handleGoHome },
   ]
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        <LandingPageLoader />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen chat-background relative overflow-hidden overflow-x-hidden">
+    <div className="flex flex-col chat-background overflow-hidden" style={{ height: '100dvh' }}>
 
       {/* Guest Banner - Temporarily disabled for demo */}
       {false && showGuestBanner && (
@@ -1003,7 +1140,6 @@ export default function ChatbotPage() {
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleSignIn}
-                size="sm"
                 className="bg-white text-orange-600 hover:bg-gray-100"
               >
                 Sign In
@@ -1036,7 +1172,7 @@ export default function ChatbotPage() {
 
             {/* Sidebar */}
             <motion.div
-              className="fixed left-0 top-0 z-50 flex h-full min-h-0 w-80 max-w-[85vw] flex-col bg-gray-100/95 dark:bg-gray-900 shadow-2xl"
+              className="fixed left-0 top-0 z-50 flex h-full min-h-0 w-80 max-w-[85vw] flex-col bg-gray-100/95 dark:bg-[#1F1E1D] shadow-2xl"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
@@ -1044,8 +1180,15 @@ export default function ChatbotPage() {
             >
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 sm:p-5">
                 <div className="flex shrink-0 items-center justify-between">
-                  <div className="flex items-center gap-3" data-onboarding="sidebar-profile">
-                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm">
+                  <button
+                    onClick={() => {
+                      setIsProfileModalOpen(true)
+                      setIsSidebarOpen(false)
+                    }}
+                    className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity rounded-lg px-2 py-1.5 group"
+                    data-onboarding="sidebar-profile"
+                  >
+                    <Avatar className="w-10 h-10 border border-white/50 dark:border-gray-700 shadow-sm group-hover:ring-2 group-hover:ring-gray-500 transition-all">
                       {profileImageUrl ? (
                         <AvatarImage
                           src={profileImageUrl}
@@ -1054,7 +1197,7 @@ export default function ChatbotPage() {
                           onError={() => setProfileImageUrl(null)}
                         />
                       ) : null}
-                      <AvatarFallback className="bg-gradient-to-br from-teal-600 to-green-500 text-white">
+                      <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-500 text-white">
                         <User className="w-5 h-5" />
                       </AvatarFallback>
                     </Avatar>
@@ -1066,7 +1209,7 @@ export default function ChatbotPage() {
                         {user ? "Signed in" : "Guest Mode"}
                       </p>
                     </div>
-                  </div>
+                  </button>
                   <motion.button
                     onClick={() => setIsSidebarOpen(false)}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -1074,7 +1217,7 @@ export default function ChatbotPage() {
                     whileTap={{ scale: 0.95 }}
                     aria-label="Close sidebar"
                   >
-                    <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    <X className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
                   </motion.button>
                 </div>
 
@@ -1126,7 +1269,7 @@ export default function ChatbotPage() {
                       </p>
                     ) : historyLoading ? (
                       <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-teal-600" />
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-300 animate-spin" />
                       </div>
                     ) : chatSessions.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1179,18 +1322,15 @@ export default function ChatbotPage() {
                 </div>
 
                 <div className="mt-4 shrink-0 border-t border-gray-200/70 dark:border-gray-700/70 pt-3 space-y-2">
-                  {user && !isGuest ? (
-                    <button
-                      type="button"
-                      onClick={() => startTutorial()}
-                      disabled={authLoading}
-                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors disabled:opacity-50"
-                      aria-label="Show app tutorial"
-                    >
-                      <CircleHelp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      App tutorial
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => startTutorial()}
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 transition-colors"
+                    aria-label="Show app tutorial"
+                  >
+                    <CircleHelp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    App tutorial
+                  </button>
                   <button
                     type="button"
                     onClick={toggleDarkMode}
@@ -1198,8 +1338,12 @@ export default function ChatbotPage() {
                   >
                     <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Dark mode
-                    <div className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-teal-600" : "bg-gray-300"}`}>
-                      <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`} />
+                    <div
+                      className={`ml-auto w-7 h-4 rounded-full transition-colors ${isDarkMode ? "bg-gray-500" : "bg-gray-300"}`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full bg-white transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`}
+                      />
                     </div>
                   </button>
                   {user ? (
@@ -1227,61 +1371,118 @@ export default function ChatbotPage() {
       </AnimatePresence>
 
       {/* Main Content (sidebar is drawer-only; never persistent) */}
-      <div className="relative z-10 flex min-h-screen">
-        <main className="flex-1 flex flex-col min-h-screen">
+      <div className="relative z-10 flex flex-1 min-h-0">
+        <main className="flex-1 flex flex-col min-h-0">
           {/* Top bar (matches screenshot: hamburger on mobile, title center, search right) */}
-          <header className="relative bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="h-16 flex items-center px-4 sm:px-6">
+          <header className="relative chat-header">
+            <div className={`flex items-center gap-1 transition-all duration-300 ${hasStarted ? 'h-8 sm:h-16 lg:h-[72px] px-1 sm:px-8 lg:px-10' : 'h-16 sm:h-20 px-3 sm:px-8'}`}>
               <motion.button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-transparent transition-colors outline-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Open sidebar"
               >
-                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Menu className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
               </motion.button>
 
-              <div className="flex-1 flex items-center justify-center pointer-events-none">
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
+              <div className="flex-1 flex items-center justify-center pointer-events-none min-w-0">
+                <div className="text-center truncate">
+                  <div className={`font-semibold text-gray-800 dark:text-gray-100 truncate ${hasStarted ? 'text-sm sm:text-lg' : 'text-base sm:text-lg'}`}>
                     Clairvyn 1.0
                   </div>
                 </div>
               </div>
 
               <motion.button
-                onClick={handleLogout}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-transparent transition-colors outline-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                aria-label="Profile"
+                aria-label="Open profile settings"
               >
-                <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <User className="w-5 h-5 text-gray-600 dark:text-[#B1ADA1]" />
               </motion.button>
             </div>
           </header>
 
-        {/* Quote Section */}
-        <AnimatePresence>
-          {messages.length === 0 && !hasStarted && (
+        {/* Chat area — centered when empty, messages + bottom-docked input when started */}
+        {!hasStarted ? (
+          <motion.div
+            className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 gap-5 sm:gap-10 pb-[12vh]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <GreetingMessage
+              firstName={user?.displayName?.split(" ")[0] ?? undefined}
+              as="h2"
+            />
             <motion.div
-              className="text-center py-8 sm:py-12 px-4 flex-1 flex items-center justify-center"
-              initial={{ opacity: 0, y: 20 }}
+              className="w-full max-w-2xl lg:max-w-3xl flex flex-col items-center gap-3"
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal dark:text-white mb-2 px-4">
-                Let's Build Something Together!
-              </h2>
+              <div className="chat-input w-full chat-input--centered" data-onboarding="chat-input">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSubmit(e)
+                    }
+                  }}
+                  placeholder={placeholderText}
+                  className="chat-input-field w-full min-w-0"
+                  disabled={isLoading}
+                  autoComplete="off"
+                  spellCheck={true}
+                />
+                <motion.button
+                  type="button"
+                  data-onboarding="send"
+                  onClick={handleSubmit}
+                  disabled={isLoading || !inputValue.trim()}
+                  className="send-btn"
+                  whileHover={{ scale: isLoading ? 1 : 1.05 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.95 }}
+                  onHoverStart={() => !isLoading && setIsPencilHovered(true)}
+                  onHoverEnd={() => setIsPencilHovered(false)}
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  ) : (
+                    <motion.div
+                      animate={isPencilHovered ? { rotate: [0, -10, 10, -5, 0] } : {}}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Clairvyn can make mistakes</span>
+                <button
+                  type="button"
+                  onClick={() => setShowDisclaimerModal(true)}
+                  className="flex-shrink-0 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  style={{ minHeight: 0, minWidth: 0 }}
+                  title="AI Disclaimer"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Chat Messages */}
-        <div className="scrollbar-main flex-1 overflow-y-auto px-2 sm:px-4 pt-6 pb-32">
-          <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
+          </motion.div>
+        ) : (
+          <>
+            <div className="scrollbar-main flex-1 overflow-y-auto flex flex-col px-3 sm:px-6">
+              <div className="max-w-3xl lg:max-w-[700px] mx-auto w-full space-y-3 sm:space-y-5 lg:space-y-9 pt-1 sm:pt-8 lg:pt-14 pb-2">
             {messages.map((message, index) => (
               <motion.div
                 key={index}
@@ -1291,12 +1492,16 @@ export default function ChatbotPage() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-5 rounded-2xl shadow-lg ${message.role === 'user'
+                  className={`max-w-[90%] sm:max-w-[80%] p-3 sm:p-4 lg:p-5 rounded-2xl ${message.role === 'user'
                     ? 'text-gray-800 dark:text-gray-50 w-fit chat-bubble-user'
-                    : 'text-gray-800 dark:text-gray-100 min-w-[200px] sm:min-w-[280px] chat-bubble-assistant'
+                    : 'text-gray-800 dark:text-gray-100 min-w-[200px] sm:min-w-[320px] chat-bubble-assistant'
                     }`}
                 >
-                  <p className="text-sm sm:text-base leading-relaxed">{message.content}</p>
+                  <div className="text-xs sm:text-base leading-relaxed lg:text-[15.5px] lg:leading-[1.78] space-y-1">
+                    {message.content.split('\n').map((line: string, i: number) => (
+                      line === '' ? <div key={i} className="h-2" /> : <p key={i}>{line}</p>
+                    ))}
+                  </div>
                   {/* Support for image/extra data and description (demo script + backend responses) */}
                   {(message as any).image || (message as any).image_url || (message as any).extra_data?.png_url || (message as any).extra_data?.dxf_url || (message as any).extra_data?.document_id ? (
                     <div className="mt-3 space-y-2">
@@ -1318,7 +1523,7 @@ export default function ChatbotPage() {
                             type="button"
                             whileHover={{ scale: 1.03, y: -1 }}
                             whileTap={{ scale: 0.97 }}
-                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500/10 to-blue-500/10 dark:from-indigo-500/20 dark:to-blue-500/20 border border-indigo-200/70 dark:border-indigo-500/30 px-4 py-2.5 text-sm font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-400/40 transition-all"
+                            className="inline-flex items-center gap-2 rounded-xl bg-gray-500/10 dark:bg-gray-500/20 border border-gray-300/70 dark:border-gray-500/30 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-400/40 transition-all"
                             onClick={() => downloadPng((message as any).extra_data?.document_id || "floorplan")}
                           >
                             <Download className="w-4 h-4" />
@@ -1328,7 +1533,7 @@ export default function ChatbotPage() {
                             type="button"
                             whileHover={{ scale: 1.03, y: -1 }}
                             whileTap={{ scale: 0.97 }}
-                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 dark:from-violet-500/20 dark:to-purple-500/20 border border-violet-200/70 dark:border-violet-500/30 px-4 py-2.5 text-sm font-medium text-violet-700 dark:text-violet-200 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-violet-300 dark:hover:border-violet-400/40 transition-all"
+                            className="inline-flex items-center gap-2 rounded-xl bg-gray-500/10 dark:bg-gray-500/20 border border-gray-300/70 dark:border-gray-500/30 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-400 dark:hover:border-gray-400/40 transition-all"
                             onClick={() => downloadDxf((message as any).extra_data?.document_id || (message as any).extra_data?.dxf_url?.split("/").pop()?.replace(".dxf", "") || "floorplan")}
                           >
                             <FileDown className="w-4 h-4" />
@@ -1350,8 +1555,8 @@ export default function ChatbotPage() {
                     const feedbackState = feedbackByMessage[feedbackKey] ?? {}
                     const isSubmitting = !!feedbackSubmittingByMessage[feedbackKey]
                     const optionClass =
-                      "text-xs sm:text-sm px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500"
-                    const selectedClass = "bg-indigo-600 text-white border-indigo-600"
+                      "text-xs sm:text-sm px-3 py-2 sm:py-1.5 rounded-full border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 active:scale-95 transition-transform"
+                    const selectedClass = "bg-gray-600 text-white border-gray-600"
 
                     const alreadySubmittedFromBackend = Boolean((message as any)?.feedback_submitted)
                     if (feedbackState.submitted || alreadySubmittedFromBackend) {
@@ -1439,7 +1644,7 @@ export default function ChatbotPage() {
                               !feedbackState.category ||
                               (feedbackState.feedbackType === "negative" && !feedbackState.severity)
                             }
-                            className="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-gray-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isSubmitting ? "Submitting..." : "Submit feedback"}
                           </button>
@@ -1447,105 +1652,126 @@ export default function ChatbotPage() {
                       </div>
                     )
                   })()}
-                  <p className={`text-xs mt-2 sm:mt-3 ${message.role === 'user' ? 'text-gray-500 dark:text-indigo-100/70' : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                    {message.timestamp
-                      ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    }
-                  </p>
                 </div>
               </motion.div>
             ))}
 
-            {/* Typing indicator (animated in/out) */}
-            <AnimatePresence>
-              {typing && (
-                <motion.div
-                  key="typing-indicator"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex justify-start"
-                >
-                  <div className="chat-bubble-assistant text-gray-800 dark:text-gray-200 p-3 sm:p-4 rounded-2xl shadow-lg">
-                    <p className="text-sm sm:text-base leading-relaxed chat-loading-text">Designing...</p>
-                    <TypingIndicator />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+
 
             {/* Loading indicator */}
             {isLoading && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
                 className="flex justify-start"
               >
-                <div className="chat-bubble-assistant text-gray-800 dark:text-gray-200 p-3 sm:p-4 rounded-2xl shadow-lg">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 animate-spin text-teal-600 dark:text-teal-400" />
-                    <motion.span
-                      key={isTurnInFlight ? assistantStatusLine : "clairvyn-thinking"}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="text-xs sm:text-sm chat-loading-text min-w-0"
-                    >
-                      {isTurnInFlight ? assistantStatusLine : "Clairvyn is thinking..."}
-                    </motion.span>
+                <div className="chat-bubble-assistant text-gray-700 dark:text-gray-300 p-3 sm:p-4 rounded-2xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Animated house icon */}
+                    <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 house-loader">
+                      <svg
+                        viewBox="0 0 64 64"
+                        className="w-full h-full"
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        {/* House outline */}
+                        <polyline 
+                          points="32,12 52,28 52,54 12,54 12,28 32,12" 
+                          fill="none"
+                          stroke="#B1ADA1"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeDasharray="120"
+                          className="house-outline"
+                        />
+                      </svg>
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={assistantStatusLine}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 8 }}
+                        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                        className="text-xs sm:text-sm font-medium text-gray-600 dark:text-[#B1ADA1] min-w-0 flex-1"
+                      >
+                        {assistantStatusLine}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
             )}
-          </div>
-        </div>
-
-        {/* Chat Input - Single Container with Smooth Animation */}
-        <div className={`chat-input-container ${hasStarted ? "dock" : "start"}`}>
-          <div className="chat-input">
-            <div className="flex-1 min-w-0" data-onboarding="chat-input">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSubmit(e)
-                  }
-                }}
-                placeholder={placeholderText}
-                className="chat-input-field w-full min-w-0"
-                disabled={isLoading}
-              />
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
+              </div>
             </div>
-            <motion.button
-              type="button"
-              data-onboarding="send"
-              onClick={handleSubmit}
-              disabled={isLoading || !inputValue.trim()}
-              className="send-btn"
-              whileHover={{ scale: isLoading ? 1 : 1.05 }}
-              whileTap={{ scale: isLoading ? 1 : 0.95 }}
-              onHoverStart={() => !isLoading && setIsPencilHovered(true)}
-              onHoverEnd={() => setIsPencilHovered(false)}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <motion.div
-                  animate={isPencilHovered ? { rotate: [0, -10, 10, -5, 0] } : {}}
-                  transition={{ duration: 0.6 }}
+
+            {/* Chat Input - bottom docked */}
+            <div className="chat-input-container">
+              <div className="chat-input" data-onboarding="chat-input">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSubmit(e)
+                    }
+                  }}
+                  placeholder={placeholderText}
+                  className="chat-input-field w-full min-w-0"
+                  disabled={isLoading}
+                  autoComplete="off"
+                  spellCheck={true}
+                />
+                <motion.button
+                  type="button"
+                  data-onboarding="send"
+                  onClick={handleSubmit}
+                  disabled={isLoading || !inputValue.trim()}
+                  className="send-btn"
+                  whileHover={{ scale: isLoading ? 1 : 1.05 }}
+                  whileTap={{ scale: isLoading ? 1 : 0.95 }}
+                  onHoverStart={() => !isLoading && setIsPencilHovered(true)}
+                  onHoverEnd={() => setIsPencilHovered(false)}
                 >
-                  <Pencil className="w-5 h-5" />
-                </motion.div>
-              )}
-            </motion.button>
-          </div>
-        </div>
+                  {isLoading ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  ) : (
+                    <motion.div
+                      animate={isPencilHovered ? { rotate: [0, -10, 10, -5, 0] } : {}}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <Pencil className="w-5 h-5" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              </div>
+
+              {/* Disclaimer */}
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Clairvyn can make mistakes
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDisclaimerModal(true)}
+                  className="flex-shrink-0 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  style={{ minHeight: 0, minWidth: 0 }}
+                  title="AI Disclaimer"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
         </main>
       </div>
 
@@ -1553,6 +1779,68 @@ export default function ChatbotPage() {
         open={waitlistOpen}
         onOpenChange={setWaitlistOpen}
       />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={handleLogout}
+        profileImageUrl={profileImageUrl}
+      />
+
+      {/* AI Disclaimer Modal */}
+      <AnimatePresence>
+        {showDisclaimerModal && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDisclaimerModal(false)}
+            />
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-sm w-full p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <CircleHelp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0.5">AI Disclaimer</h3>
+                </div>
+                
+                <div className="space-y-3 mb-6 text-sm text-gray-700 dark:text-gray-300">
+                  <p>
+                    <strong>Please note:</strong> Clairvyn uses AI to generate floor plans. While powerful, AI is susceptible to mistakes.
+                  </p>
+                  <ul className="list-disc list-inside space-y-2">
+                    <li>Generated floor plans may contain errors or unrealistic layouts</li>
+                    <li>Dimensions and proportions may not always be accurate</li>
+                    <li>The AI may miss important architectural constraints</li>
+                    <li>Generated designs should <strong>never</strong> be used directly for construction</li>
+                    <li>Always have professional architects review and certify plans before use</li>
+                  </ul>
+                  <p className="pt-2">
+                    These outputs are conceptual aids only and should not replace professional architectural services.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowDisclaimerModal(false)}
+                  className="w-full bg-[#1e2bd6] hover:bg-[#1a24b8] text-white font-semibold py-2 rounded-lg transition-colors"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+
     </div>
   )
 }

@@ -1,9 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Caveat, Inter } from "next/font/google"
+import Script from "next/script"
+import { Caveat, Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/contexts/ThemeContext"
+import { DOCUMENT_THEME_SYNC_SCRIPT } from "@/lib/documentTheme"
+import { NetworkStatus } from "@/components/NetworkStatus"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,14 +21,22 @@ const caveat = Caveat({
   display: "swap",
 })
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+})
+
 export const metadata: Metadata = {
   title: "Clairvyn",
   icons: {
     icon: '/logo.png',
   },
   description:
-    "Design Architectural Floorplans using Simple Prompts.",
-  keywords: "architecture, design, AI, challenges, education, floorplan, building design, Clairvyn",
+    "Design Architectural Floor Plans using Simple Prompts.",
+  keywords: "architecture, design, AI, challenges, education, floor plan, building design, Clairvyn",
   authors: [{ name: "Clairvyn Team" }],
   generator: 'v0.app'
 }
@@ -33,6 +44,9 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover' as const,
+  interactiveWidget: 'resizes-content' as const,
 }
 
 export default function RootLayout({
@@ -41,8 +55,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`scroll-smooth ${caveat.variable}`}>
+    <html
+      lang="en"
+      className={`scroll-smooth ${caveat.variable} ${playfair.variable}`}
+      suppressHydrationWarning
+      style={{ colorScheme: "light only" }}
+    >
       <body className={inter.className}>
+        <Script
+          id="clairvyn-document-theme"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: DOCUMENT_THEME_SYNC_SCRIPT }}
+        />
+        <NetworkStatus />
         <ThemeProvider>
           <AuthProvider>
             {children}

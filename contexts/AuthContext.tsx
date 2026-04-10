@@ -47,12 +47,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const guestMode = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
     setIsGuest(guestMode)
 
+    // Add a timeout to ensure loading state is cleared even if onAuthStateChanged doesn't fire
+    const loadingTimeout = setTimeout(() => {
+      console.warn("[Clairvyn] Auth loading state timeout - forcing completion")
+      setLoading(false)
+    }, 8000) // 8 second timeout
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      clearTimeout(loadingTimeout)
       setUser(firebaseUser)
+      setLoading(false)
+    }, (error) => {
+      // Error callback - also clear loading on error
+      console.error("[Clairvyn] Auth state changed error:", error)
+      clearTimeout(loadingTimeout)
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      clearTimeout(loadingTimeout)
+      unsubscribe()
+    }
   }, [])
 
   const enterGuestMode = () => {
@@ -74,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("guestChats")
       localStorage.removeItem("guest")
+      localStorage.removeItem("guestGenerationsUsed")
     }
     setIsGuest(false)
   }
@@ -93,9 +109,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async (options?: { rememberMe?: boolean }) => {
     await applyAuthPersistence(options?.rememberMe ?? true)
     const provider = new GoogleAuthProvider()
-    await signInWithPopup(auth, provider)
+    
+    // Request additional profile scopes
+    provider.addScope('profile')
+    provider.addScope('email')
+    provider.setCustomParameters({
+      prompt: 'consent'
+    })
+    
+    try {
+      if (auth.currentUser && !auth.currentUser.isAnonymous) {
+        // Already signed in with another method → link Google to existing account
+        const result = await (auth.currentUser as any).linkWithPopup(provider)
+        // Update profile with Google data
+        await updateUserProfileFromGoogle(result.user)
+        console.log("Google provider linked to existing account")
+      } else {
+        // First time → just sign in
+        const result = await signInWithPopup(auth, provider)
+        // Update profile with Google data (name and photo URL)
+        await updateUserProfileFromGoogle(result.user)
+        console.log("Signed in with Google")
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/credential-already-in-use') {
+        // Google email already linked to different account - sign in instead
+        const result = await signInWithPopup(auth, provider)
+        await updateUserProfileFromGoogle(result.user)
+        console.log("Signed in with Google (different account)")
+      } else {
+        throw error
+      }
+    }
+    
     await migrateGuestChats()
-    console.log("Signed in with Google")
+  }
+
+  const updateUserProfileFromGoogle = async (firebaseUser: FirebaseUser) => {
+    try {
+      // Extract name and profile picture from Google ID token claims
+      const idTokenResult = await firebaseUser.getIdTokenResult()
+      const displayName = firebaseUser.displayName || idTokenResult.claims.name || firebaseUser.email?.split('@')[0] || 'User'
+      const photoURL = firebaseUser.photoURL || idTokenResult.claims.picture || undefined
+
+      // Update the user's profile in Firebase Auth if not already set
+      if (!firebaseUser.displayName || !firebaseUser.photoURL) {
+        const { updateProfile } = await import('firebase/auth')
+        const profileUpdate: any = {}
+        
+        if (!firebaseUser.displayName && displayName) {
+          profileUpdate.displayName = displayName
+        }
+        
+        if (!firebaseUser.photoURL && photoURL) {
+          profileUpdate.photoURL = photoURL
+        }
+        
+        if (Object.keys(profileUpdate).length > 0) {
+          await updateProfile(firebaseUser, profileUpdate)
+        }
+      }
+      
+      console.log("User profile updated with Google data:", { displayName, photoURL })
+    } catch (error) {
+      console.error("Error updating user profile from Google:", error)
+      // Don't throw - profile update failure shouldn't block login
+    }
   }
 
   const signInWithGithub = async (options?: { rememberMe?: boolean }) => {
@@ -107,6 +186,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    // Clear all redirect flags to ensure clean state on next login
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("fromChatbot")
+        sessionStorage.removeItem("hasVisitedApp")
+        sessionStorage.removeItem("lastChatbotActivityTime")
+      } catch (e) {
+        console.warn("[Clairvyn] Error clearing sessionStorage during logout", e)
+      }
+    }
+    
     await signOut(auth)
     if (isGuest) {
       exitGuestMode()
